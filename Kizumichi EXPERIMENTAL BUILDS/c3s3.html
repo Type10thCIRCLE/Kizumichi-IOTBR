@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>傷道 | Inheritance of the Broken Road</title>
+
+  <link rel="stylesheet" href="css/fc-theme.css">
+</head>
+
+<body>
+
+<!-- BACKGROUND -->
+<div id="bg-drift">
+  <div id="bg-base"></div>
+  <div id="bg-layer"></div>
+</div>
+<div id="bg-vignette"></div>
+<div id="bg-light-sweep"></div>
+<div id="bg-atmosphere"></div>
+<div id="bg-noise"></div>
+
+<audio id="bgm" src="FC-OST/Inheritance of the Broken Road.mp3" autoplay loop muted></audio>
+
+<!-- FADE -->
+<div id="fade-overlay"></div>
+
+<!-- SCENE INTRO TRANSITION -->
+<div id="scene-transition" class="hidden">
+  <div id="trans-bg"></div>
+  <div id="trans-bg-mask"></div>
+  <div class="trans-wipe-slash"></div>
+  <div class="trans-wipe-right"></div>
+  <div class="trans-vignette"></div>
+  <div class="trans-encounter-badge">KIZUMICHI</div>
+  <div class="trans-location-badge" id="trans-location"></div>
+  <div class="trans-observation" id="trans-observation"></div>
+  <div class="transition-title" id="trans-title"></div>
+</div>
+</div>
+
+<div id="nvl-overlay">
+  <div id="nvl-curtain"></div>
+  <div id="text-block">
+    <div id="char-name"></div>
+    <div id="speaker-line"></div>
+    <div id="dialogue-text"><span id="typing-cursor"></span></div>
+  </div>
+</div>
+
+<div id="game-screen">
+  <div id="scene-field">
+<!-- NVL PORTRAIT (bottom, large) — A/B crossfade layers -->
+<div id="portrait-wrap" data-count="1">
+  <div class="portrait-slot" id="portrait-slot-1">
+    <img id="portrait-img-1a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-1b" class="portrait-layer" src="" alt="" />
+  </div>
+  <div class="portrait-slot" id="portrait-slot-2">
+    <img id="portrait-img-2a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-2b" class="portrait-layer" src="" alt="" />
+  </div>
+  <div class="portrait-slot" id="portrait-slot-3">
+    <img id="portrait-img-3a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-3b" class="portrait-layer" src="" alt="" />
+  </div>
+</div>
+
+    <!-- Standing character portrait — sits above the dialogue box (desktop only) -->
+    <div id="standing-portrait-wrap" class="hidden">
+      <img id="standing-portrait-img" src="" alt="" />
+    </div>
+    <div id="portrait-wrap">
+  <img id="portrait-img-a" class="portrait-layer" src="" alt="" />
+  <img id="portrait-img-b" class="portrait-layer" src="" alt="" />
+</div>
+  </div>
+
+  <div id="textbox-row">
+
+    <div id="dialogue-pane">
+      <div id="speaker-row">
+        <div id="char-name"></div>
+        <div id="speaker-line"></div>
+      </div>
+      <div id="content-row">
+        <div id="portrait-wrap-legacy">
+          <img id="portrait-img-legacy" src="" alt="" />
+        </div>
+        <div id="text-content">
+          <div id="dialogue-text"><span id="typing-cursor"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="meta-pane">
+      <div id="meta-header">PROGRESS</div>
+      <div id="meta-location">—</div>
+      <div id="progress-wrap">
+        <div id="progress-label">
+          <span>SCENE</span>
+        </div>
+        <div id="progress-track"><div id="progress-fill"></div></div>
+        <div id="progress-dots"></div>
+      </div>
+      <button id="click-hint">CONTINUE</button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ── PAUSE MENU ─────────────────────────────────────── -->
+<div id="pause-menu" style="display:none;">
+  <div id="pause-backdrop"></div>
+  <div id="pause-panel">
+    <!-- Settings Panel (opened from Settings nav button) -->
+    <div id="settings-panel">
+      <div id="settings-box">
+        <div id="settings-heading">
+          <span id="settings-title">⚙ Settings</span>
+          <button id="settings-close">✕</button>
+        </div>
+
+        <!-- Music Volume -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Music Volume</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-music-pct">70%</span>
+            <input type="range" class="s-slider" id="sv-music" min="0" max="100" value="70">
+          </div>
+        </div>
+
+        <!-- SFX / Ambience (future-proof, stored but no audio hook yet) -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">SFX Volume</span>
+            <span class="s-hint">Sound effects &amp; ambience</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-sfx-pct">80%</span>
+            <input type="range" class="s-slider" id="sv-sfx" min="0" max="100" value="80">
+          </div>
+        </div>
+
+        <!-- Text Speed -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Text Speed</span>
+            <span class="s-hint">Characters per second</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-speed-pct">Normal</span>
+            <input type="range" class="s-slider" id="sv-speed" min="1" max="5" step="1" value="3">
+          </div>
+        </div>
+
+        <!-- Text Size -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Text Size</span>
+          </div>
+          <div class="s-seg" id="sv-textsize">
+            <button class="s-seg-btn" data-size="small">S</button>
+            <button class="s-seg-btn active" data-size="normal">M</button>
+            <button class="s-seg-btn" data-size="large">L</button>
+          </div>
+        </div>
+
+        <!-- Skip Seen Text -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Skip Seen Text</span>
+            <span class="s-hint">Hold Ctrl to fast-skip already-read lines</span>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="sv-skip" checked>
+            <span class="s-toggle-track"><span class="s-toggle-thumb"></span></span>
+          </label>
+        </div>
+
+        <!-- Auto-Advance -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Auto-Advance</span>
+            <span class="s-hint">Lines advance automatically after typing</span>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="sv-auto">
+            <span class="s-toggle-track"><span class="s-toggle-thumb"></span></span>
+          </label>
+        </div>
+
+        <!-- Controls / Keybindings -->
+        <div class="s-section-label">Controls</div>
+        <div id="sv-keybind-list"></div>
+        <button class="s-kb-reset" id="sv-kb-reset">Reset to Defaults</button>
+        <div class="s-kb-hint">Click a key chip, then press a new key to rebind. Click + to add another binding.</div>
+
+      </div>
+    </div>
+    <div id="pause-header">
+      <div id="pause-eyebrow">Menu</div>
+      <div id="pause-title">Paused</div>
+      <div id="pause-title-rule"></div>
+      <div id="pause-chapter-info" id="pause-chapter-info"></div>
+    </div>
+    <div id="pause-chapter-info-bar"></div>
+    <nav id="pause-nav">
+      <div id="pause-nav-buttons">
+        <button class="pause-btn" id="pause-resume">
+          <span class="pause-btn-icon">▷</span>Resume
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-restart" id="pause-restart">
+          <span class="pause-btn-icon">↺</span>Restart Scene
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-chapters" id="pause-map">
+          <span class="pause-chapters-label-row">
+            <span class="pause-chapters-dot"></span>
+            <span class="pause-btn-icon">◎</span>Chapter Select
+          </span>
+          <span class="pause-chapters-sub" id="pause-chapters-sub">View all chapters</span>
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-menu" id="pause-mainmenu">
+          <span class="pause-btn-icon">←</span>Main Menu
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn" id="pause-settings">
+          <span class="pause-btn-icon">⚙</span>Settings
+        </button>
+      </div>
+    </nav>
+  </div>
+</div>
+
+<!-- ── MOBILE MENU BUTTON ─────────────────────────────── -->
+<button id="mobile-menu-btn" aria-label="Pause / Menu" title="Pause [Esc]">⏸</button>
+
+<script>
+window.FC_CONFIG = {
+  chapter:  "Part 2 - Chapter 3 - Scene 3 - What the Road Carried",
+  file:     "c3s3.html",
+  nextFile: "c3s4.html",
+  scenes:   [
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `The road between Kyoshin and Rervite was two days on foot. The first day the landscape was farmland, the fields already stripped for the season, the soil the particular dark color of recently worked earth. By the second morning the farms had given way to open meadow and the road ran along a ridgeline where the wind came uninterrupted, carrying the smell of cold and distance.`,
+  },
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `Kaden processed difficult things better in motion than in stillness. The road gave him space for thoughts to find where they were going.`,
+  },
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `Iris walked beside him on the second day. They had found a rhythm without arranging it — not discussed, just settled. When she walked beside him the silence was the kind that didn't require management.`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `They had gone some time before he said anything. He had learned, in two days of walking beside her, that she used silence productively rather than escaping it, and that she did not mistake it for absence of attention. When it felt right he said: "Tell me about the Anima bloodline. Not the vessel. Not the architecture. What it actually is."`,
+  },  
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `"The bloodline is the capacity," she said. "The capacity is temporal. We move through Ether differently than other practitioners. We can feel time as a dimension rather than a sequence."`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `"The Time Restoration."`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `"Is the most extreme use. Most of what we do is smaller. Reading the temporal residue of places — the Ether signature of things that happened there." She paused. "My father wanted a daughter who could defend the bloodline's interests. I have always been better at the reading. The sensing. He considered this a secondary skill."`,
+  },  
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `"It's how you knew what the suppression devices were doing."`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `"I can feel the Ether frequency they operate on. Since I was twelve." She looked at the road ahead. "My father never found a use for that particular ability. It wasn't violent enough."`,
+  }, 
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `He thought about this. They walked. A transit marker passed: Rervite, 34 km`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `"What was it like," he said, "growing up with a capacity your father classified as secondary?"`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `She was quiet for a moment — the quality of someone deciding how much of the answer to give. "Clarifying," she said finally. "I spent a great deal of time in rooms where I was expected to be a certain kind of practitioner and was, instead, a different kind. The difference between what he needed and what I was became very clear. That clarity was uncomfortable for years, and then — I think around the time I was seventeen — it became useful."`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `"Useful how?"`,
+  },   
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `"I understood that I was seeing something he couldn't see. That my reading capacity, which he dismissed, was showing me things about the bloodline's history and architecture that his combat orientation couldn't access. I knew things about the Sentinels, from the temporal residue in the palace corridors, three years before I read the archive entry."`,
+},
+    {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `She looked at him. "He built the architecture to express a vision he had of what power should be. I grew up inside that expression, which gave me a perspective on it he couldn't have."`,
+},
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `"The view from inside," he said.`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `"And the view from outside," she said, "which I've had for three months. They're different." She looked at the road. "Together they're the most complete picture of my father's work that exists."`,
+  },                          
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `He said: "You're planning to use that picture."`,
+  },  
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `"I am using it. Every time I open a seal or read a bridge Ether field or tell you which direction the garrison's scan is facing — that's the picture in use." She paused. "In Rervite, there may be documents with temporal residue. Significant decisions leave signatures. Would your bloodline reading tell you anything before we opened them?"`,
+  },  
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `He considered this. "It might. Documents carry temporal residue if they've been the source of significant decisions — if enough fear or authority passed through them."`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `"Then I want to use the reading."`,
+  },  
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `"Tell me what you find," he said. "The rest we'll have to read for ourselves."`,
+  },    
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'field.jpg',
+    text: `She nodded. They walked on. The road to Rervite was long and the wind was steady and the company was, without either of them yet having language for it, already good.`,
+  },      
+]
+};
+</script>
+<script src="js/engine.js"></script>
+<script>FC_start();</script>
+</body>
+</html>

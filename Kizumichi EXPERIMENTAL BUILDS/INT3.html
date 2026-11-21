@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>傷道 | Inheritance of the Broken Road</title>
+<link rel="stylesheet" href="css/fc-theme.css">
+</head>
+<body>
+
+<!-- BACKGROUND -->
+<div id="bg-drift">
+  <div id="bg-base"></div>
+  <div id="bg-layer"></div>
+</div>
+<div id="bg-vignette"></div>
+<div id="bg-light-sweep"></div>
+<div id="bg-atmosphere"></div>
+<div id="bg-noise"></div>
+
+<audio id="bgm" src="FC-OST/With them.mp3" autoplay loop muted></audio>
+
+<!-- FADE -->
+<div id="fade-overlay"></div>
+
+<!-- SCENE INTRO TRANSITION -->
+<div id="scene-transition" class="hidden">
+  <div id="trans-bg"></div>
+  <div id="trans-bg-mask"></div>
+  <div class="trans-wipe-slash"></div>
+  <div class="trans-wipe-right"></div>
+  <div class="trans-vignette"></div>
+  <div class="trans-encounter-badge">KIZUMICHI</div>
+  <div class="trans-location-badge" id="trans-location"></div>
+  <div class="trans-observation" id="trans-observation"></div>
+  <div class="transition-title" id="trans-title"></div>
+</div>
+</div>
+
+<div id="nvl-overlay">
+  <div id="nvl-curtain"></div>
+  <div id="text-block">
+    <div id="char-name"></div>
+    <div id="speaker-line"></div>
+    <div id="dialogue-text"><span id="typing-cursor"></span></div>
+  </div>
+</div>
+
+<div id="game-screen">
+  <div id="scene-field">
+<!-- NVL PORTRAIT (bottom, large) — A/B crossfade layers -->
+<div id="portrait-wrap" data-count="1">
+  <div class="portrait-slot" id="portrait-slot-1">
+    <img id="portrait-img-1a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-1b" class="portrait-layer" src="" alt="" />
+  </div>
+  <div class="portrait-slot" id="portrait-slot-2">
+    <img id="portrait-img-2a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-2b" class="portrait-layer" src="" alt="" />
+  </div>
+  <div class="portrait-slot" id="portrait-slot-3">
+    <img id="portrait-img-3a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-3b" class="portrait-layer" src="" alt="" />
+  </div>
+</div>
+
+    <!-- Standing character portrait — sits above the dialogue box (desktop only) -->
+    <div id="standing-portrait-wrap" class="hidden">
+      <img id="standing-portrait-img" src="" alt="" />
+    </div>
+    <div id="portrait-wrap">
+  <img id="portrait-img-a" class="portrait-layer" src="" alt="" />
+  <img id="portrait-img-b" class="portrait-layer" src="" alt="" />
+</div>
+  </div>
+
+  <div id="textbox-row">
+
+    <div id="dialogue-pane">
+      <div id="speaker-row">
+        <div id="char-name"></div>
+        <div id="speaker-line"></div>
+      </div>
+      <div id="content-row">
+        <div id="portrait-wrap-legacy">
+          <img id="portrait-img-legacy" src="" alt="" />
+        </div>
+        <div id="text-content">
+          <div id="dialogue-text"><span id="typing-cursor"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="meta-pane">
+      <div id="meta-header">PROGRESS</div>
+      <div id="meta-location">—</div>
+      <div id="progress-wrap">
+        <div id="progress-label">
+          <span>SCENE</span>
+        </div>
+        <div id="progress-track"><div id="progress-fill"></div></div>
+        <div id="progress-dots"></div>
+      </div>
+      <button id="click-hint">CONTINUE</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── PAUSE MENU ─────────────────────────────────────── -->
+<div id="pause-menu" style="display:none;">
+  <div id="pause-backdrop"></div>
+  <div id="pause-panel">
+    <!-- Settings Panel (opened from Settings nav button) -->
+    <div id="settings-panel">
+      <div id="settings-box">
+        <div id="settings-heading">
+          <span id="settings-title">⚙ Settings</span>
+          <button id="settings-close">✕</button>
+        </div>
+
+        <!-- Music Volume -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Music Volume</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-music-pct">70%</span>
+            <input type="range" class="s-slider" id="sv-music" min="0" max="100" value="70">
+          </div>
+        </div>
+
+        <!-- SFX / Ambience (future-proof, stored but no audio hook yet) -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">SFX Volume</span>
+            <span class="s-hint">Sound effects &amp; ambience</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-sfx-pct">80%</span>
+            <input type="range" class="s-slider" id="sv-sfx" min="0" max="100" value="80">
+          </div>
+        </div>
+
+        <!-- Text Speed -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Text Speed</span>
+            <span class="s-hint">Characters per second</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-speed-pct">Normal</span>
+            <input type="range" class="s-slider" id="sv-speed" min="1" max="5" step="1" value="3">
+          </div>
+        </div>
+
+        <!-- Text Size -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Text Size</span>
+          </div>
+          <div class="s-seg" id="sv-textsize">
+            <button class="s-seg-btn" data-size="small">S</button>
+            <button class="s-seg-btn active" data-size="normal">M</button>
+            <button class="s-seg-btn" data-size="large">L</button>
+          </div>
+        </div>
+
+        <!-- Skip Seen Text -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Skip Seen Text</span>
+            <span class="s-hint">Hold Ctrl to fast-skip already-read lines</span>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="sv-skip" checked>
+            <span class="s-toggle-track"><span class="s-toggle-thumb"></span></span>
+          </label>
+        </div>
+
+        <!-- Auto-Advance -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Auto-Advance</span>
+            <span class="s-hint">Lines advance automatically after typing</span>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="sv-auto">
+            <span class="s-toggle-track"><span class="s-toggle-thumb"></span></span>
+          </label>
+        </div>
+
+        <!-- Controls / Keybindings -->
+        <div class="s-section-label">Controls</div>
+        <div id="sv-keybind-list"></div>
+        <button class="s-kb-reset" id="sv-kb-reset">Reset to Defaults</button>
+        <div class="s-kb-hint">Click a key chip, then press a new key to rebind. Click + to add another binding.</div>
+
+      </div>
+    </div>
+    <div id="pause-header">
+      <div id="pause-eyebrow">Menu</div>
+      <div id="pause-title">Paused</div>
+      <div id="pause-title-rule"></div>
+      <div id="pause-chapter-info" id="pause-chapter-info"></div>
+    </div>
+    <div id="pause-chapter-info-bar"></div>
+    <nav id="pause-nav">
+      <div id="pause-nav-buttons">
+        <button class="pause-btn" id="pause-resume">
+          <span class="pause-btn-icon">▷</span>Resume
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-restart" id="pause-restart">
+          <span class="pause-btn-icon">↺</span>Restart Scene
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-chapters" id="pause-map">
+          <span class="pause-chapters-label-row">
+            <span class="pause-chapters-dot"></span>
+            <span class="pause-btn-icon">◎</span>Chapter Select
+          </span>
+          <span class="pause-chapters-sub" id="pause-chapters-sub">View all chapters</span>
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-menu" id="pause-mainmenu">
+          <span class="pause-btn-icon">←</span>Main Menu
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn" id="pause-settings">
+          <span class="pause-btn-icon">⚙</span>Settings
+        </button>
+      </div>
+    </nav>
+  </div>
+</div>
+
+<!-- ── MOBILE MENU BUTTON ─────────────────────────────── -->
+<button id="mobile-menu-btn" aria-label="Pause / Menu" title="Pause [Esc]">⏸</button>
+
+<script>
+window.FC_CONFIG = {
+  chapter:  "INTERLUDE: AVA — THE FIRST LESSON",
+  file:     "INT3.html",
+  nextFile: "c4.html",
+  scenes:   [
+  {
+    bg: 'inn2.webp',
+    text: `The first lesson was not how to move without being seen.`,
+  },
+  {
+    bg: 'inn2.webp',
+    text: `The first lesson was: what do people see.`,
+  },
+  {
+    bg: 'inn2.webp',
+    text: `Her trainer — a woman who operated out of a transit inn in what was then still a functioning commercial district of Rervite, before the administrative consolidation changed the city's economic character — was called nothing by the people who used her services and called Ferren by anyone who had known her before she was in the business of teaching people to be professionally unnoticed.`,
+},
+    {
+    bg: 'inn2.webp',
+    text: `She was fifty-four years old when she took Ava on at seventeen. She had retired from field work at forty-two and had spent twelve years turning what she knew into a methodology she could teach.`,
+},
+  {
+    bg: 'inn2.webp',
+    text: `The methodology was not what Ava had expected.`,
+  },
+  {
+    bg: 'inn2.webp',
+    text: `She had come to Ferren with a specific set of skills already. They were the result of a childhood in a household that required careful attention to who was angry and who was not, and a young adulthood in which she had discovered that the attention she'd always paid was not only a survival skill but a form of intelligence.`,
+},
+    {
+    bg: 'inn2.webp',
+    text: `She moved carefully. She was quiet in the way of people who have learned that being noticed has costs. She was good at being in rooms without being in rooms.`,
+},
+  {
+    character: 'Ferren',
+    portrait1: '',
+    bg: 'inn2.webp',
+    text: `Ferren looked at her for a long time during the intake interview. Then she said: the skills you're walking in with are defensive. You're good at not being found. That's not the same as being unnoticed.`,
+  },
+  {
+    character: 'Ava',
+    portrait1: '',
+    bg: 'inn2.webp',
+    text: `What's the difference, Ava said.`,
+  },
+  {
+    character: 'Ferren',
+    portrait1: '',
+    bg: 'inn2.webp',
+    text: `Ferren poured tea. She was a woman who moved with the economy of motion that came from decades of paying attention to what motion cost. Not found means you have concealed yourself. Unnoticed means they looked and didn't see anything worth noting. The first is active. The second is passive. You want the second, because the first requires effort and effort is a resource.`,
+  },
+  {
+    character: 'Ava',
+    portrait1: '',
+    bg: 'inn2.webp',
+    text: `How do you achieve the second?`,
+  },
+  {
+    character: 'Ferren',
+    portrait1: '',
+    bg: 'inn2.webp',
+    text: `Tell me what people see, Ferren said.`,
+  },
+  {
+    character: 'Ava',
+    portrait1: '',
+    bg: 'inn2.webp',
+    text: `Ava thought about it. She said: whatever they're looking for.`,
+  },
+  {
+    character: 'Ferren',
+    portrait1: '',
+    bg: 'inn2.webp',
+    text: `Ferren set down the tea. Correct, she said. The work is understanding what they're looking for before they look, and ensuring you're not it.`,
+  },
+  {
+    bg: 'inn2.webp',
+    text: `This was the first lesson. The rest of them were applications of this principle across different environments, different cover situations, different threat profiles. People look for anomalies.`,
+},
+    {
+    bg: 'inn2.webp',
+    text: `Ferren returned to this every week for the following year. They look for movement where there shouldn't be, stillness where there shouldn't be, for the wrong pace or the wrong clothing or the wrong quality of attention. You don't hide. You become the right anomaly. The one they've already categorized and moved past.`,
+},
+  {
+    bg: 'inn2.webp',
+    text: `The daggers came in the fifth month. Ava had expected them earlier.`,
+  },
+  {
+    character: 'Ferren',
+    portrait1: '',
+    bg: 'inn2.webp',
+    text: `Ferren said: weapons are the last lesson, not the first. Anyone can learn to use a blade. What you need to be able to do with the blade is only meaningful after you understand the situation you're using it in. If you understand the situation correctly, you will rarely need the blade. If you need the blade, you will use it precisely because you understand the situation.`,
+  },
+  {
+    bg: 'inn2.webp',
+    text: `The precision was Ferren's word and Ferren's teaching. Not clean, which had a moral weight she considered inaccurate. Precise: exactly the right force, in exactly the right place, for exactly the required duration. No more.`,
+},
+    {
+    bg: 'inn2.webp',
+    text: `The professional code that Ava had developed by the time she was nineteen — the one that made her a person who resolved situations with accuracy rather than a person who simply hurt people — came from this principle applied outward: right force, right place, right duration.`,
+},
+  {
+    bg: 'class.webp',
+    text: `She finished training at nineteen. She joined the borderland intelligence network and spent two years conducting the kind of work that never appeared in files, and that she found, in practice, to be exactly what Ferren had taught her it would be: ninety percent attention, nine percent positioning, one percent the dagger.`,
+  },
+  {
+    bg: 'class.webp',
+    text: `She came to Kaden's group through Noah. He had been building the border intelligence file and he needed someone who had been inside the corridor nations' security architecture. She had. She also needed somewhere to put what she knew, and someone worth putting it with.`,
+  },
+  {
+    bg: 'class.webp',
+    text: `She assessed Kaden over three weeks in the Academy's second-year combat program, where she was an unregistered observer, before she concluded that he was worth it.`,
+},
+    {
+    bg: 'class.webp',
+    text: `The quality that decided her was not his skill with Requiem, which was considerable. It was the way he ran the combat drills: the specific quality of someone who was always thinking about what the fight was for and not just how to win it. The person who would protect the position without needing to be told that the position was worth protecting.`,
+},
+  {
+    bg: 'class.webp',
+    text: `She had been waiting for that quality for two years.`,
+  },
+  {
+    character: 'Ava',
+    portrait1: '',
+    bg: 'class.webp',
+    text: `She walked up to him after a drill session and said: I have information you need. He looked at her with the quality she would come to know as his usual register — the careful, unhurried attention of someone who was taking her seriously rather than immediately. Then he said: tell me what you have. She told him. He listened. He said: come to Noah's apartment Thursday. She went.`,
+  },
+  {
+    bg: 'apartment.webp',
+    text: `The rest was the group, which she had not expected to find herself inside and which she considered, after five weeks, to be the right place for the particular skill set she had spent seven years developing. The group required precision. She was precise. These were not unrelated.`,
+  },
+  {
+    bg: 'apartment.webp',
+    text: `She had also concluded several other things about the group. That Kurt was the most reliably warm presence she had encountered in her professional life, and that warmth was, it turned out, not something she had any built-in immunity to. That Sophia saw everything and said exactly what needed saying and no more.`,
+},
+    {
+    bg: 'apartment.webp',
+    text: `That Noah's compulsive documentation was a form of care — he preserved things because he wanted them to exist. That Kaden made everyone feel like their particular version of good at things was the right version.`,
+},
+  {
+    bg: 'apartment.webp',
+    text: `She had not said any of this out loud. She said few things out loud as a rule.`,
+  },
+  {
+    bg: 'apartment.webp',
+    text: `But she had noted it. In the place where she kept the things that mattered, she had noted all of it.`,
+  },
+  {
+    bg: 'apartment.webp',
+    text: `The first lesson had been: what do people see. Ava had spent seven years finding the answer. In Kyoshin, the first night, watching Kaden tell the group everything and watching the group receive it with the quality of people who had already decided before they heard it, she had understood something new about the question.`,
+  },
+  {
+    bg: 'apartment.webp',
+    text: `People see what matters to them. The skill was not becoming invisible. The skill was understanding what mattered to the people you were working with, and whether you mattered to them. She had concluded, on the first night in Kyoshin, that she did. She had adjusted her register accordingly.`,
+  },
+  {
+    bg: 'apartment.webp',
+    text: `Ferren would have said: good. She would have said: that's the last lesson.`,
+  },
+]
+};
+</script>
+<script src="js/engine.js"></script>
+<script>FC_start();</script>
+</body>
+</html>

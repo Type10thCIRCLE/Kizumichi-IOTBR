@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>傷道 | Inheritance of the Broken Road</title>
+
+  <link rel="stylesheet" href="css/fc-theme.css">
+</head>
+
+<body>
+
+<!-- BACKGROUND -->
+<div id="bg-drift">
+  <div id="bg-base"></div>
+  <div id="bg-layer"></div>
+</div>
+<div id="bg-vignette"></div>
+<div id="bg-light-sweep"></div>
+<div id="bg-atmosphere"></div>
+<div id="bg-noise"></div>
+
+<audio id="bgm" src="FC-OST/Zenith.mp3" autoplay loop muted></audio>
+
+<!-- FADE -->
+<div id="fade-overlay"></div>
+
+<!-- SCENE INTRO TRANSITION -->
+<div id="scene-transition" class="hidden">
+  <div id="trans-bg"></div>
+  <div id="trans-bg-mask"></div>
+  <div class="trans-wipe-slash"></div>
+  <div class="trans-wipe-right"></div>
+  <div class="trans-vignette"></div>
+  <div class="trans-encounter-badge">KIZUMICHI</div>
+  <div class="trans-location-badge" id="trans-location"></div>
+  <div class="trans-observation" id="trans-observation"></div>
+  <div class="transition-title" id="trans-title"></div>
+</div>
+</div>
+
+<div id="nvl-overlay">
+  <div id="nvl-curtain"></div>
+  <div id="text-block">
+    <div id="char-name"></div>
+    <div id="speaker-line"></div>
+    <div id="dialogue-text"><span id="typing-cursor"></span></div>
+  </div>
+</div>
+
+<div id="game-screen">
+  <div id="scene-field">
+<!-- NVL PORTRAIT (bottom, large) — A/B crossfade layers -->
+<div id="portrait-wrap" data-count="1">
+  <div class="portrait-slot" id="portrait-slot-1">
+    <img id="portrait-img-1a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-1b" class="portrait-layer" src="" alt="" />
+  </div>
+  <div class="portrait-slot" id="portrait-slot-2">
+    <img id="portrait-img-2a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-2b" class="portrait-layer" src="" alt="" />
+  </div>
+  <div class="portrait-slot" id="portrait-slot-3">
+    <img id="portrait-img-3a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-3b" class="portrait-layer" src="" alt="" />
+  </div>
+</div>
+
+    <!-- Standing character portrait — sits above the dialogue box (desktop only) -->
+    <div id="standing-portrait-wrap" class="hidden">
+      <img id="standing-portrait-img" src="" alt="" />
+    </div>
+    <div id="portrait-wrap">
+  <img id="portrait-img-a" class="portrait-layer" src="" alt="" />
+  <img id="portrait-img-b" class="portrait-layer" src="" alt="" />
+</div>
+  </div>
+
+  <div id="textbox-row">
+
+    <div id="dialogue-pane">
+      <div id="speaker-row">
+        <div id="char-name"></div>
+        <div id="speaker-line"></div>
+      </div>
+      <div id="content-row">
+        <div id="portrait-wrap-legacy">
+          <img id="portrait-img-legacy" src="" alt="" />
+        </div>
+        <div id="text-content">
+          <div id="dialogue-text"><span id="typing-cursor"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="meta-pane">
+      <div id="meta-header">PROGRESS</div>
+      <div id="meta-location">—</div>
+      <div id="progress-wrap">
+        <div id="progress-label">
+          <span>SCENE</span>
+        </div>
+        <div id="progress-track"><div id="progress-fill"></div></div>
+        <div id="progress-dots"></div>
+      </div>
+      <button id="click-hint">CONTINUE</button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ── PAUSE MENU ─────────────────────────────────────── -->
+<div id="pause-menu" style="display:none;">
+  <div id="pause-backdrop"></div>
+  <div id="pause-panel">
+    <!-- Settings Panel (opened from Settings nav button) -->
+    <div id="settings-panel">
+      <div id="settings-box">
+        <div id="settings-heading">
+          <span id="settings-title">⚙ Settings</span>
+          <button id="settings-close">✕</button>
+        </div>
+
+        <!-- Music Volume -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Music Volume</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-music-pct">70%</span>
+            <input type="range" class="s-slider" id="sv-music" min="0" max="100" value="70">
+          </div>
+        </div>
+
+        <!-- SFX / Ambience (future-proof, stored but no audio hook yet) -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">SFX Volume</span>
+            <span class="s-hint">Sound effects &amp; ambience</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-sfx-pct">80%</span>
+            <input type="range" class="s-slider" id="sv-sfx" min="0" max="100" value="80">
+          </div>
+        </div>
+
+        <!-- Text Speed -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Text Speed</span>
+            <span class="s-hint">Characters per second</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-speed-pct">Normal</span>
+            <input type="range" class="s-slider" id="sv-speed" min="1" max="5" step="1" value="3">
+          </div>
+        </div>
+
+        <!-- Text Size -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Text Size</span>
+          </div>
+          <div class="s-seg" id="sv-textsize">
+            <button class="s-seg-btn" data-size="small">S</button>
+            <button class="s-seg-btn active" data-size="normal">M</button>
+            <button class="s-seg-btn" data-size="large">L</button>
+          </div>
+        </div>
+
+        <!-- Skip Seen Text -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Skip Seen Text</span>
+            <span class="s-hint">Hold Ctrl to fast-skip already-read lines</span>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="sv-skip" checked>
+            <span class="s-toggle-track"><span class="s-toggle-thumb"></span></span>
+          </label>
+        </div>
+
+        <!-- Auto-Advance -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Auto-Advance</span>
+            <span class="s-hint">Lines advance automatically after typing</span>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="sv-auto">
+            <span class="s-toggle-track"><span class="s-toggle-thumb"></span></span>
+          </label>
+        </div>
+
+        <!-- Controls / Keybindings -->
+        <div class="s-section-label">Controls</div>
+        <div id="sv-keybind-list"></div>
+        <button class="s-kb-reset" id="sv-kb-reset">Reset to Defaults</button>
+        <div class="s-kb-hint">Click a key chip, then press a new key to rebind. Click + to add another binding.</div>
+
+      </div>
+    </div>
+    <div id="pause-header">
+      <div id="pause-eyebrow">Menu</div>
+      <div id="pause-title">Paused</div>
+      <div id="pause-title-rule"></div>
+      <div id="pause-chapter-info" id="pause-chapter-info"></div>
+    </div>
+    <div id="pause-chapter-info-bar"></div>
+    <nav id="pause-nav">
+      <div id="pause-nav-buttons">
+        <button class="pause-btn" id="pause-resume">
+          <span class="pause-btn-icon">▷</span>Resume
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-restart" id="pause-restart">
+          <span class="pause-btn-icon">↺</span>Restart Scene
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-chapters" id="pause-map">
+          <span class="pause-chapters-label-row">
+            <span class="pause-chapters-dot"></span>
+            <span class="pause-btn-icon">◎</span>Chapter Select
+          </span>
+          <span class="pause-chapters-sub" id="pause-chapters-sub">View all chapters</span>
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-menu" id="pause-mainmenu">
+          <span class="pause-btn-icon">←</span>Main Menu
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn" id="pause-settings">
+          <span class="pause-btn-icon">⚙</span>Settings
+        </button>
+      </div>
+    </nav>
+  </div>
+</div>
+
+<!-- ── MOBILE MENU BUTTON ─────────────────────────────── -->
+<button id="mobile-menu-btn" aria-label="Pause / Menu" title="Pause [Esc]">⏸</button>
+
+<script>
+window.FC_CONFIG = {
+  chapter:  "Part Two - Chapter 3 - Scene 6 - What Iris Knew",
+  file:     "c3s6.html",
+  nextFile: "c3s7.html",
+  scenes:   [
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `On the second evening in Rervite, Kaden sat in the boarding house common room after the others had gone up. The woodstove was lit but not tended, the fire lower than it should have been. Outside, rain had started against the glass. He had his father's photograph out on the table in front of him — not studying it, just keeping company.`,
+  },
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `She came halfway down the stairs and stopped.`,
+  },                                                      
+  {
+    character: 'Kaden',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"You don't have to avoid the room," he said.`,
+  },
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `She came the rest of the way down and sat across from him. She looked at the photograph.`,
+  },                                                      
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"His oath ceremony," he said. "Twenty-six."`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"He was younger than I thought."`,
+  }, 
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"He died at twenty-nine." He was quiet for a moment. "My father was forty-three when he killed him. At the height of his power. He'd been building the bloodline architecture for fifteen years. What happened in that corridor was not a fair engagement. Nothing my father does is fair. He designs the conditions to be unfair. That is the whole of his strategy."`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"I know," Kaden said.`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `He looked at the photograph. The silence that followed was not comfortable or uncomfortable — just honest. She waited. He said, without looking up: "I read something today in the annex. A footnote. They called him a discrepancy. Something that had been resolved." He set the photograph down on the table. "Resolved. Like a rounding error."`,
+  },
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `He was not asking her to do anything with it. He was saying it out loud because it had been sitting in his chest since the annex and saying it seemed like the only way to make it slightly less heavy.`,
+  },                                                                  
+  {
+    music: 'none',
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `She did not try to fix it. She was quiet, and that was the right thing.`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"I want you to know that I know," she said. "I'm not trying to make it smaller."`,
+  },
+  {
+    music: 'Metonyms.mp3',
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"Thank you," he said. "For saying that directly."`,
+  },                                                                        
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `He picked up the photograph and looked at it. Twenty-six years old. He looked young in it — younger than Kaden had always imagined, though he'd had the photograph his whole life. He looked like someone who did not yet know what was coming. Of course he didn't. Nobody does.`,
+  }, 
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `Kaden put the photograph away. His chest still had that weight in it — that word, resolved. He thought it would be there for a while. He decided that was acceptable. He had been carrying things for a long time. He knew how.`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"Tell me about the Time Restoration," he said. "Not the mechanics. The reason."`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"Because if the architecture was never built — if my father was never possible — then none of this happened. Your father doesn't die. Your brother doesn't become a vessel. Every person who was hurt by what my family built gets what they should have had." She paused. "The cost is that I don't exist in the restored version of the world."`,
+  },
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `He was very still.`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"The person I am was shaped by this history," she said. "If the history doesn't happen, someone else is born in my place. Someone shaped by a different world. That isn't nothing. But it isn't me." She met his eyes. "I made this decision. I am not asking for your agreement."`,
+  },
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `He looked at the photograph. His father at twenty-six, at the oath ceremony, with the specific posture of someone who has just committed to something. When he spoke, it was careful.`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"The group," he said. "They are why I can keep going. If there is ever a moment when I have to choose between you and them—"`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"You'll choose them." Flat. Accurate. Not bitter.`,
+  },  
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"Yes."`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `She held his gaze. "I know. I would too, if I had what you have." A pause. "I'm not asking you to choose me. I'm asking you to trust me enough to let me do what I came to do."`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"Then I'm asking you," he said, "not to disappear before you have to."`,
+  },  
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `Something moved in her expression — less governed than her usual careful neutrality.`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"Agreed," she said.`,
+  },
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `The rain continued. They sat together in the quiet, neither requiring the other to fill it. It was, Kaden thought, the specific quality of sitting with someone who was comfortable with the weight of things. Who did not need it to be lighter than it was.`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `After a long time she said: "The photograph. Does it help?"`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"Yes. It reminds me that he was real. A person who stood in front of a camera at twenty-six and looked at the future." He looked at it. "He didn't know what was coming. He went anyway." A pause. "That's what I need to remember. Not the outcome. The going."`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `She was quiet. "My father has no photographs," she said. "Only portraits. Official ones. There is no image of my father surprised."`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"That's a lonely way to be preserved," Kaden said.`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"Yes," she said. "I think so too."`,
+  },
+  {
+    sfx: 'thud.mp3',
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `They sat a little longer. Somewhere above them, in the room where Kurt and Noah were meant to be sleeping, there was a sudden thud followed by Kurt's voice saying something that was just barely inaudible through the ceiling.`,
+  },
+  {
+    sfx: 'thud.mp3',
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `Kaden looked up. Iris looked up.`,
+  },    
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"He was practicing the coin trick in bed and dropped it," Kaden said.`,
+  },   
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `She looked at him. "How do you know that?"`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"I live with him."`,
+  },   
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `She considered this. "That sounds like a lot."`,
+  }, 
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"It's a reasonable amount," he said. "Which is about eighty percent of a lot."`,
+  },   
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `She made a sound that was, unambiguously, a laugh — brief and startled and real.`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `She pressed her hand to her mouth immediately after, as though she hadn't quite meant to let it out.`,
+  },  
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `He said nothing about it. He just looked back at the table.`,
+  },   
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `After a moment she said, a little more carefully: "Is he always like that?"`,
+  },     
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"Yes."`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"And you've been friends since—"`,
+  },     
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"First year. He set the practice courtyard on fire by accident. I was the only person who didn't run."`,
+  },           
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"Why didn't you run?"`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `He shrugged, very slightly. "It seemed like a reasonable mistake."`,
+  },           
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `She was quiet for a moment. "I think," she said, "that is the most Kaden Acies sentence I've heard you say."`,
+  },  
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `He looked at her. She was looking at the table, and the corner of her mouth was doing the thing it did when she'd decided something was funny but hadn't decided whether to show it.`,
+  },
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"Go to sleep, Ris," he said.`,
+  },       
+  {
+    character: 'Iris',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn2.webp',
+    text: `"Yes," she said. "Alright." And she went.`,
+  },                                                                                                             
+]
+};
+</script>
+<script src="js/engine.js"></script>
+<script>FC_start();</script>
+</body>
+</html>

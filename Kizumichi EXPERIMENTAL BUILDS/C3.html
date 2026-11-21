@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>傷道 | Inheritance of the Broken Road</title>
+
+  <link rel="stylesheet" href="css/fc-theme.css">
+</head>
+
+<body>
+
+<!-- BACKGROUND -->
+<div id="bg-drift">
+  <div id="bg-base"></div>
+  <div id="bg-layer"></div>
+</div>
+<div id="bg-vignette"></div>
+<div id="bg-light-sweep"></div>
+<div id="bg-atmosphere"></div>
+<div id="bg-noise"></div>
+
+<audio id="bgm" src="FC-OST/Sovereign of Assurinlands.mp3" autoplay loop muted></audio>
+
+<!-- FADE -->
+<div id="fade-overlay"></div>
+
+<!-- SCENE INTRO TRANSITION -->
+<div id="scene-transition" class="hidden">
+  <div id="trans-bg"></div>
+  <div id="trans-bg-mask"></div>
+  <div class="trans-wipe-slash"></div>
+  <div class="trans-wipe-right"></div>
+  <div class="trans-vignette"></div>
+  <div class="trans-encounter-badge">KIZUMICHI</div>
+  <div class="trans-location-badge" id="trans-location"></div>
+  <div class="trans-observation" id="trans-observation"></div>
+  <div class="transition-title" id="trans-title"></div>
+</div>
+</div>
+
+<div id="nvl-overlay">
+  <div id="nvl-curtain"></div>
+  <div id="text-block">
+    <div id="char-name"></div>
+    <div id="speaker-line"></div>
+    <div id="dialogue-text"><span id="typing-cursor"></span></div>
+  </div>
+</div>
+
+<div id="game-screen">
+  <div id="scene-field">
+<!-- NVL PORTRAIT (bottom, large) — A/B crossfade layers -->
+<div id="portrait-wrap" data-count="1">
+  <div class="portrait-slot" id="portrait-slot-1">
+    <img id="portrait-img-1a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-1b" class="portrait-layer" src="" alt="" />
+  </div>
+  <div class="portrait-slot" id="portrait-slot-2">
+    <img id="portrait-img-2a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-2b" class="portrait-layer" src="" alt="" />
+  </div>
+  <div class="portrait-slot" id="portrait-slot-3">
+    <img id="portrait-img-3a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-3b" class="portrait-layer" src="" alt="" />
+  </div>
+</div>
+
+    <!-- Standing character portrait — sits above the dialogue box (desktop only) -->
+    <div id="standing-portrait-wrap" class="hidden">
+      <img id="standing-portrait-img" src="" alt="" />
+    </div>
+    <div id="portrait-wrap">
+  <img id="portrait-img-a" class="portrait-layer" src="" alt="" />
+  <img id="portrait-img-b" class="portrait-layer" src="" alt="" />
+</div>
+  </div>
+
+  <div id="textbox-row">
+
+    <div id="dialogue-pane">
+      <div id="speaker-row">
+        <div id="char-name"></div>
+        <div id="speaker-line"></div>
+      </div>
+      <div id="content-row">
+        <div id="portrait-wrap-legacy">
+          <img id="portrait-img-legacy" src="" alt="" />
+        </div>
+        <div id="text-content">
+          <div id="dialogue-text"><span id="typing-cursor"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="meta-pane">
+      <div id="meta-header">PROGRESS</div>
+      <div id="meta-location">—</div>
+      <div id="progress-wrap">
+        <div id="progress-label">
+          <span>SCENE</span>
+        </div>
+        <div id="progress-track"><div id="progress-fill"></div></div>
+        <div id="progress-dots"></div>
+      </div>
+      <button id="click-hint">CONTINUE</button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ── PAUSE MENU ─────────────────────────────────────── -->
+<div id="pause-menu" style="display:none;">
+  <div id="pause-backdrop"></div>
+  <div id="pause-panel">
+    <!-- Settings Panel (opened from Settings nav button) -->
+    <div id="settings-panel">
+      <div id="settings-box">
+        <div id="settings-heading">
+          <span id="settings-title">⚙ Settings</span>
+          <button id="settings-close">✕</button>
+        </div>
+
+        <!-- Music Volume -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Music Volume</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-music-pct">70%</span>
+            <input type="range" class="s-slider" id="sv-music" min="0" max="100" value="70">
+          </div>
+        </div>
+
+        <!-- SFX / Ambience (future-proof, stored but no audio hook yet) -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">SFX Volume</span>
+            <span class="s-hint">Sound effects &amp; ambience</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-sfx-pct">80%</span>
+            <input type="range" class="s-slider" id="sv-sfx" min="0" max="100" value="80">
+          </div>
+        </div>
+
+        <!-- Text Speed -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Text Speed</span>
+            <span class="s-hint">Characters per second</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-speed-pct">Normal</span>
+            <input type="range" class="s-slider" id="sv-speed" min="1" max="5" step="1" value="3">
+          </div>
+        </div>
+
+        <!-- Text Size -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Text Size</span>
+          </div>
+          <div class="s-seg" id="sv-textsize">
+            <button class="s-seg-btn" data-size="small">S</button>
+            <button class="s-seg-btn active" data-size="normal">M</button>
+            <button class="s-seg-btn" data-size="large">L</button>
+          </div>
+        </div>
+
+        <!-- Skip Seen Text -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Skip Seen Text</span>
+            <span class="s-hint">Hold Ctrl to fast-skip already-read lines</span>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="sv-skip" checked>
+            <span class="s-toggle-track"><span class="s-toggle-thumb"></span></span>
+          </label>
+        </div>
+
+        <!-- Auto-Advance -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Auto-Advance</span>
+            <span class="s-hint">Lines advance automatically after typing</span>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="sv-auto">
+            <span class="s-toggle-track"><span class="s-toggle-thumb"></span></span>
+          </label>
+        </div>
+
+        <!-- Controls / Keybindings -->
+        <div class="s-section-label">Controls</div>
+        <div id="sv-keybind-list"></div>
+        <button class="s-kb-reset" id="sv-kb-reset">Reset to Defaults</button>
+        <div class="s-kb-hint">Click a key chip, then press a new key to rebind. Click + to add another binding.</div>
+
+      </div>
+    </div>
+    <div id="pause-header">
+      <div id="pause-eyebrow">Menu</div>
+      <div id="pause-title">Paused</div>
+      <div id="pause-title-rule"></div>
+      <div id="pause-chapter-info" id="pause-chapter-info"></div>
+    </div>
+    <div id="pause-chapter-info-bar"></div>
+    <nav id="pause-nav">
+      <div id="pause-nav-buttons">
+        <button class="pause-btn" id="pause-resume">
+          <span class="pause-btn-icon">▷</span>Resume
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-restart" id="pause-restart">
+          <span class="pause-btn-icon">↺</span>Restart Scene
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-chapters" id="pause-map">
+          <span class="pause-chapters-label-row">
+            <span class="pause-chapters-dot"></span>
+            <span class="pause-btn-icon">◎</span>Chapter Select
+          </span>
+          <span class="pause-chapters-sub" id="pause-chapters-sub">View all chapters</span>
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-menu" id="pause-mainmenu">
+          <span class="pause-btn-icon">←</span>Main Menu
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn" id="pause-settings">
+          <span class="pause-btn-icon">⚙</span>Settings
+        </button>
+      </div>
+    </nav>
+  </div>
+</div>
+
+<!-- ── MOBILE MENU BUTTON ─────────────────────────────── -->
+<button id="mobile-menu-btn" aria-label="Pause / Menu" title="Pause [Esc]">⏸</button>
+
+<script>
+window.FC_CONFIG = {
+  chapter:  "Part 2 - Chapter 3 - Scene 1 - The Chain-Keeper",
+  file:     "C3.html",
+  nextFile: "chainkeeper_encount.html",
+  scenes:   [
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `They left Kyoshin in the early morning, on foot. The transit corridor east was wide and old, the stone beneath the maintenance layer worn smooth by centuries of passage. The air was cooler than it had been in the city, and the landscape opened as they walked: fewer trees, wider sky, the occasional transit marker counting down the kilometers to the next crossing.`,
+  },
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `By midmorning the road climbed into the mountains, switchbacking through pine forest, the trees close on both sides and the air carrying the sharp-cold smell of altitude. By the time the trees thinned, the sky had opened wide and pale above them.`,
+  },
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `Mela stopped once on a switchback and looked back down the valley. Three transit markers were visible from up here. They looked very small.`,
+  },  
+  // Mela stopped once on a switchback and looked back down the valley. Three transit markers were visible from up here. They looked very small
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `The walking had found its own rhythm after two days — not discussed, just settled. The pace that let everyone sustain indefinitely. The positioning that gave each person the space their particular version of quiet required. Mela walked between Sophia and Iris, asking questions in the rapid-fire way of someone who had been alone with her own thoughts for too long and was making up for lost time.`,
+  },
+  {
+    character: 'Mela',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"The suppression field at the bridge," she said to Iris. "Could you feel it before we stepped on?"`,
+  }, 
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"From about two hundred meters."`,
+  },  
+  {
+    character: 'Mela',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"What does it feel like?"`,
+  }, 
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"Pressure. Like walking into a headwind, but in your chest instead of against your face."`,
+  },
+  {
+    character: 'Mela',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"And you can just—" Mela made a sideways motion with her hand.`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"Step out of its path. Yes. Most of the time." She paused. "Not when they're specifically designed for me."`,
+  },
+  {
+    character: 'Mela',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `Mela processed this. "So your father built the suppression devices specifically to counter you."`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"He built them for bloodline-level practitioners. I am one." A pause. "He did not build them expecting I would leave."`,
+  },
+  {
+    character: 'Mela',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `Mela looked at her. Something in her expression was too old for fifteen and had probably been there for some time. "Was that hard? Leaving?"`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"Yes."`,
+  },
+  {
+    character: 'Mela',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"But you did it anyway."`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"Yes."`,
+  },
+  {
+    character: 'Mela',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `Mela nodded — the way she nodded when information confirmed a working hypothesis. "Okay," she said, and moved on to her next question, which was about the Ether pooling rate in the second bridge's stone, and which she directed at Noah with the focused efficiency of someone who had already catalogued the group's subject-matter experts and was deploying them accordingly.`,
+  },
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `Noah answered at length. Mela followed up. Noah answered at greater length. Sophia, walking beside them, said nothing, but she was writing in her green notebook and she was smiling.`,
+  },
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `The Chain-Keeper announced itself before it was visible: a deep resonant frequency rising up through the soles of their boots, the sound of something old and massive pulling against the bridge's Ether architecture. The stone itself vibrated slightly underfoot.`,
+  },        
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"Bound to the chains," Iris said, reading it. She had been doing this — walking ahead and reading the field — since the first bridge. "Not to the keystone. It distributes the anchor points across the entire span. There is no single structural weakness."`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"So we can't just find the seam," Kaden said.`,
+  }, 
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"Not one seam. Multiple. Distributed. We'd have to disrupt all of them simultaneously." She looked at the bridge. "Or we disrupt the chain architecture itself. The chains are the anchor. The Ether flows through them. If we interrupt the flow—"`,
+  },
+  {
+    character: 'Noah',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"We can disrupt the field from multiple points," Noah said. He was already reading the structural lines. "The chains are physically accessible. They run along both rail lines. If the group splits—"`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"Left and right," Kaden said. "Noah, Kurt, take the right. Ava, Sophia, left. Iris and I take the construct head-on when it surfaces."`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"Head-on," Iris said."`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"You'll be reading the field while I work the blade."`,
+  }, 
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `She looked at him for a moment with an expression that was still forming an opinion about this. "Fine," she said. "Try not to get in my way."`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"I'll do my best," he said.`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"That's not a promise."`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'mountain.webp',
+    text: `"No," he agreed. "It isn't."`,
+  },                                        
+]
+};
+</script>
+<script src="js/engine.js"></script>
+<script>FC_start();</script>
+</body>
+</html>

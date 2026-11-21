@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>傷道 | Inheritance of the Broken Road</title>
+
+  <link rel="stylesheet" href="css/fc-theme.css">
+</head>
+
+<body>
+
+<!-- BACKGROUND -->
+<div id="bg-drift">
+  <div id="bg-base"></div>
+  <div id="bg-layer"></div>
+</div>
+<div id="bg-vignette"></div>
+<div id="bg-light-sweep"></div>
+<div id="bg-atmosphere"></div>
+<div id="bg-noise"></div>
+
+<audio id="bgm" src="FC-OST/With them.mp3" autoplay loop muted></audio>
+
+<!-- FADE -->
+<div id="fade-overlay"></div>
+
+<!-- SCENE INTRO TRANSITION -->
+<div id="scene-transition" class="hidden">
+  <div id="trans-bg"></div>
+  <div id="trans-bg-mask"></div>
+  <div class="trans-wipe-slash"></div>
+  <div class="trans-wipe-right"></div>
+  <div class="trans-vignette"></div>
+  <div class="trans-encounter-badge">KIZUMICHI</div>
+  <div class="trans-location-badge" id="trans-location"></div>
+  <div class="trans-observation" id="trans-observation"></div>
+  <div class="transition-title" id="trans-title"></div>
+</div>
+</div>
+
+<div id="nvl-overlay">
+  <div id="nvl-curtain"></div>
+  <div id="text-block">
+    <div id="char-name"></div>
+    <div id="speaker-line"></div>
+    <div id="dialogue-text"><span id="typing-cursor"></span></div>
+  </div>
+</div>
+
+<div id="game-screen">
+  <div id="scene-field">
+<!-- NVL PORTRAIT (bottom, large) — A/B crossfade layers -->
+<div id="portrait-wrap" data-count="1">
+  <div class="portrait-slot" id="portrait-slot-1">
+    <img id="portrait-img-1a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-1b" class="portrait-layer" src="" alt="" />
+  </div>
+  <div class="portrait-slot" id="portrait-slot-2">
+    <img id="portrait-img-2a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-2b" class="portrait-layer" src="" alt="" />
+  </div>
+  <div class="portrait-slot" id="portrait-slot-3">
+    <img id="portrait-img-3a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-3b" class="portrait-layer" src="" alt="" />
+  </div>
+</div>
+
+    <!-- Standing character portrait — sits above the dialogue box (desktop only) -->
+    <div id="standing-portrait-wrap" class="hidden">
+      <img id="standing-portrait-img" src="" alt="" />
+    </div>
+    <div id="portrait-wrap">
+  <img id="portrait-img-a" class="portrait-layer" src="" alt="" />
+  <img id="portrait-img-b" class="portrait-layer" src="" alt="" />
+</div>
+  </div>
+
+  <div id="textbox-row">
+
+    <div id="dialogue-pane">
+      <div id="speaker-row">
+        <div id="char-name"></div>
+        <div id="speaker-line"></div>
+      </div>
+      <div id="content-row">
+        <div id="portrait-wrap-legacy">
+          <img id="portrait-img-legacy" src="" alt="" />
+        </div>
+        <div id="text-content">
+          <div id="dialogue-text"><span id="typing-cursor"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="meta-pane">
+      <div id="meta-header">PROGRESS</div>
+      <div id="meta-location">—</div>
+      <div id="progress-wrap">
+        <div id="progress-label">
+          <span>SCENE</span>
+        </div>
+        <div id="progress-track"><div id="progress-fill"></div></div>
+        <div id="progress-dots"></div>
+      </div>
+      <button id="click-hint">CONTINUE</button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ── PAUSE MENU ─────────────────────────────────────── -->
+<div id="pause-menu" style="display:none;">
+  <div id="pause-backdrop"></div>
+  <div id="pause-panel">
+    <!-- Settings Panel (opened from Settings nav button) -->
+    <div id="settings-panel">
+      <div id="settings-box">
+        <div id="settings-heading">
+          <span id="settings-title">⚙ Settings</span>
+          <button id="settings-close">✕</button>
+        </div>
+
+        <!-- Music Volume -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Music Volume</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-music-pct">70%</span>
+            <input type="range" class="s-slider" id="sv-music" min="0" max="100" value="70">
+          </div>
+        </div>
+
+        <!-- SFX / Ambience (future-proof, stored but no audio hook yet) -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">SFX Volume</span>
+            <span class="s-hint">Sound effects &amp; ambience</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-sfx-pct">80%</span>
+            <input type="range" class="s-slider" id="sv-sfx" min="0" max="100" value="80">
+          </div>
+        </div>
+
+        <!-- Text Speed -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Text Speed</span>
+            <span class="s-hint">Characters per second</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-speed-pct">Normal</span>
+            <input type="range" class="s-slider" id="sv-speed" min="1" max="5" step="1" value="3">
+          </div>
+        </div>
+
+        <!-- Text Size -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Text Size</span>
+          </div>
+          <div class="s-seg" id="sv-textsize">
+            <button class="s-seg-btn" data-size="small">S</button>
+            <button class="s-seg-btn active" data-size="normal">M</button>
+            <button class="s-seg-btn" data-size="large">L</button>
+          </div>
+        </div>
+
+        <!-- Skip Seen Text -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Skip Seen Text</span>
+            <span class="s-hint">Hold Ctrl to fast-skip already-read lines</span>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="sv-skip" checked>
+            <span class="s-toggle-track"><span class="s-toggle-thumb"></span></span>
+          </label>
+        </div>
+
+        <!-- Auto-Advance -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Auto-Advance</span>
+            <span class="s-hint">Lines advance automatically after typing</span>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="sv-auto">
+            <span class="s-toggle-track"><span class="s-toggle-thumb"></span></span>
+          </label>
+        </div>
+
+        <!-- Controls / Keybindings -->
+        <div class="s-section-label">Controls</div>
+        <div id="sv-keybind-list"></div>
+        <button class="s-kb-reset" id="sv-kb-reset">Reset to Defaults</button>
+        <div class="s-kb-hint">Click a key chip, then press a new key to rebind. Click + to add another binding.</div>
+
+      </div>
+    </div>
+    <div id="pause-header">
+      <div id="pause-eyebrow">Menu</div>
+      <div id="pause-title">Paused</div>
+      <div id="pause-title-rule"></div>
+      <div id="pause-chapter-info" id="pause-chapter-info"></div>
+    </div>
+    <div id="pause-chapter-info-bar"></div>
+    <nav id="pause-nav">
+      <div id="pause-nav-buttons">
+        <button class="pause-btn" id="pause-resume">
+          <span class="pause-btn-icon">▷</span>Resume
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-restart" id="pause-restart">
+          <span class="pause-btn-icon">↺</span>Restart Scene
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-chapters" id="pause-map">
+          <span class="pause-chapters-label-row">
+            <span class="pause-chapters-dot"></span>
+            <span class="pause-btn-icon">◎</span>Chapter Select
+          </span>
+          <span class="pause-chapters-sub" id="pause-chapters-sub">View all chapters</span>
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-menu" id="pause-mainmenu">
+          <span class="pause-btn-icon">←</span>Main Menu
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn" id="pause-settings">
+          <span class="pause-btn-icon">⚙</span>Settings
+        </button>
+      </div>
+    </nav>
+  </div>
+</div>
+
+<!-- ── MOBILE MENU BUTTON ─────────────────────────────── -->
+<button id="mobile-menu-btn" aria-label="Pause / Menu" title="Pause [Esc]">⏸</button>
+
+<script>
+window.FC_CONFIG = {
+  chapter:  "Part 2 - Chapter 2 - Scene 3 - The First Night",
+  file:     "c2s3.html",
+  nextFile: "c2s4.html",
+  scenes:   [
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `They found a transit inn that took cash and booked two rooms. The larger room had two beds and a table with three chairs, and the window looked onto an interior courtyard where laundry had been left out. Someone had painted the wall near the door a particular shade of green that had once been cheerful and was now simply present. They sat with the door locked and the window cleared by Ava's perimeter check.`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `Iris explained the vessel mechanics — the bloodline's ability to inhabit a secondary consciousness, the required willing initial contact, the way the host remained present but sealed. "Sixteen years is an extraordinary length of time to hold on," she said.`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `"He's still there," Kaden said.`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `"If the letter is recent, yes."`,
+  },   
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `"How do we get him out?"`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `She paused. "There is a way. It is called the Time Restoration." She explained it completely: a temporal inversion, the Anima bloodline's deepest capacity, that could restore a specific reality within a defined scope.`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `"If the Anima bloodline's history is restored to what it was before the architecture was built — before my ancestor created the control system that made my father possible — then none of what followed occurred. Your father doesn't die. Your brother doesn't become a vessel."`,
+  },  
+  {
+    character: 'Ava',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `"And the cost?" Ava asked.`,
+  },       
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `Iris looked at her hands. "The anchor seals themselves inside the restoration. They do not return from it." She looked at Kaden steadily. "I made this decision before I crossed the border. I am not revising it." She looked at Noah's notebook, where he'd written one of seven in the margin. "I also need six more of the Pure Ether Crystals. Without them the sealing won't hold. The Sentinels at each bridge are the source."`,
+  },
+  {
+    character: 'Noah',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `Noah drew a small column of seven squares at the bottom of the page. He filled in the first one. "Then we collect as we go," he said. As though it were logistics. Which, he understood, it was.`,
+  },
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `The room was quiet. Kaden looked at her — at the person across from him who had the quality of someone sitting with a decision for a long time, not agonizing over it but living alongside it.`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `"We've known each other for four hours," Kaden said.`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `"I know. I'm not asking for your permission. I'm asking for your company."`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `"The group decides together," he said.`,
+  },   
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `"I understand that. I'm not part of the group."`,
+  },
+  {
+    character: 'Sophia',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `"Not yet," Sophia said, from her corner, not looking up from her notes. The room looked at her. "Not yet," she said again, with finality.`,
+  },   
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `Iris looked at Sophia for a moment. “You make decisions by consensus,” she said.`,
+  },     
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `“We make decisions together,” Kaden said. “It’s not the same thing.”`,
+  },  
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `“What’s the difference?”`,
+  },
+  {
+    character: 'Noah',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `“Consensus means everyone agrees,” Noah said, from where he was writing. He had not looked up. “Together means everyone was present when the decision was made. The outcome is usually similar. The second is faster and more honest about what’s actually happening.”`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `“And if someone in the room objects?” Iris asked.`,
+  },
+  {
+    character: 'Ava',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `“Then they say so,” Ava said.`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `“And then?”`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `“We hear it,” Kaden said. “And then we decide.”`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `She was quiet. “I haven’t operated that way before.”`,
+  },
+  {
+    character: 'Sophia',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `“I know,” Sophia said. Her voice had shifted slightly — the fraction that meant something real was underneath it. “You’ll figure it out.”`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `“How long did it take the rest of you?”`,
+  },  
+  {
+    character: 'Kurt',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'inn.webp',
+    text: `Kurt, without hesitation: “Two weeks. But I had complications with the food negotiations.”`,
+  }, 
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `They ate at the common room table and the evening had the quality of people mapping the edges of a new shared space. Kurt was working a coin across his knuckles — the idle habit he'd had since twelve. Iris watched it.`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"What is that?" she asked.`,
+  },
+  {
+    character: 'Kurt',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"Coin trick." He set the coin flat on the table and began the motion again. "Focus habit. Keeps the hands active without drawing on the magic."`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"Can you teach me?"`,
+  },    
+  {
+    character: 'Kurt',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `The table went slightly quiet. Kurt looked at her. He wasn't easy with her — he hadn't decided yet. But he also wasn't petty. "Give me a coin," he said.`,
+  },
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `He showed her the motion. She tried it. The coin fell.`,
+  },
+  {
+    character: 'Kurt',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"Again," he said.`,
+  },
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `She tried it. It fell.`,
+  },   
+  {
+    character: 'Kurt',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"Again."`,
+  },          
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"I understand the word," she said.`,
+  }, 
+  {
+    character: 'Kurt',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"Good, so again."`,
+  },
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `The corner of her mouth moved — barely, but it moved. She tried again. Coin across two knuckles. Almost three.`,
+  },
+  {
+    character: 'Kurt',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"You're holding your wrist wrong," he said.`,
+  },    
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"I'm holding it the way you hold yours."`,
+  },
+  {
+    character: 'Kurt',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"My wrist is different."`,
+  },    
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"Structurally?"`,
+  },    
+  {
+    character: 'Kurt',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"Professionally." He adjusted her grip without ceremony. "There. Try."`,
+  },     
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `The coin made it across three knuckles. She stared at it.`,
+  },                            
+  {
+    character: 'Kurt',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"Don't celebrate yet," Kurt said. "Four is the actual benchmark."`,
+  }, 
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"You said three was—"`,
+  },    
+  {
+    character: 'Kurt',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"I said two was the first lesson. Three is the second lesson. Four is the benchmark."`,
+  },  
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `She looked at him with an expression that was not entirely unlike the one she'd given the Anima soldiers in the alley, except the daggers were metaphorical. "How many lessons are there?"`,
+  },
+  {
+    character: 'Kurt',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `Kurt smiled at his food. "A few."`,
+  },    
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `By the time they went to bed she had made it across three knuckles consistently and across four twice. She did not comment on this. She put the coin away and said good night in the same tone she used for tactical assessments. Kurt watched her go and then looked at Kaden. The look on his face was not the easy warmth he’d had when he said “I like her already” in the alley. It was more careful than that. Something still being weighed.`,
+  },  
+  {
+    character: 'Kurt',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"I like her," he said.`,
+  }, 
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"You mentioned," Kaden said.`,
+  },
+  {
+    character: 'Kurt',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"I want it on record."`,
+  }, 
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"Noah is literally writing things down right now."`,
+  },
+  {
+    character: 'Kurt',
+    portrait: '',
+    portrait2: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `"Good," Kurt said. "Document it."`,
+  }, 
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'dinnertable.webp',
+    text: `Noah did not look up from his notebook. He had, in fact, already documented it.`,
+  },            
+]
+};
+</script>
+<script src="js/engine.js"></script>
+<script>FC_start();</script>
+</body>
+</html>

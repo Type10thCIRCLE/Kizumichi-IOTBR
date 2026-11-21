@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>傷道 | Inheritance of the Broken Road</title>
+
+  <link rel="stylesheet" href="css/fc-theme.css">
+</head>
+
+<body>
+
+<!-- BACKGROUND -->
+<div id="bg-drift">
+  <div id="bg-base"></div>
+  <div id="bg-layer"></div>
+</div>
+<div id="bg-vignette"></div>
+<div id="bg-light-sweep"></div>
+<div id="bg-atmosphere"></div>
+<div id="bg-noise"></div>
+
+<audio id="bgm" src="FC-OST/Tension.mp3" autoplay loop muted></audio>
+
+<!-- FADE -->
+<div id="fade-overlay"></div>
+
+<!-- SCENE INTRO TRANSITION -->
+<div id="scene-transition" class="hidden">
+  <div id="trans-bg"></div>
+  <div id="trans-bg-mask"></div>
+  <div class="trans-wipe-slash"></div>
+  <div class="trans-wipe-right"></div>
+  <div class="trans-vignette"></div>
+  <div class="trans-encounter-badge">KIZUMICHI</div>
+  <div class="trans-location-badge" id="trans-location"></div>
+  <div class="trans-observation" id="trans-observation"></div>
+  <div class="transition-title" id="trans-title"></div>
+</div>
+</div>
+
+<div id="nvl-overlay">
+  <div id="nvl-curtain"></div>
+  <div id="text-block">
+    <div id="char-name"></div>
+    <div id="speaker-line"></div>
+    <div id="dialogue-text"><span id="typing-cursor"></span></div>
+  </div>
+</div>
+
+<div id="game-screen">
+  <div id="scene-field">
+<!-- NVL PORTRAIT (bottom, large) — A/B crossfade layers -->
+<div id="portrait-wrap" data-count="1">
+  <div class="portrait-slot" id="portrait-slot-1">
+    <img id="portrait-img-1a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-1b" class="portrait-layer" src="" alt="" />
+  </div>
+  <div class="portrait-slot" id="portrait-slot-2">
+    <img id="portrait-img-2a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-2b" class="portrait-layer" src="" alt="" />
+  </div>
+  <div class="portrait-slot" id="portrait-slot-3">
+    <img id="portrait-img-3a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-3b" class="portrait-layer" src="" alt="" />
+  </div>
+</div>
+
+    <!-- Standing character portrait — sits above the dialogue box (desktop only) -->
+    <div id="standing-portrait-wrap" class="hidden">
+      <img id="standing-portrait-img" src="" alt="" />
+    </div>
+    <div id="portrait-wrap">
+  <img id="portrait-img-a" class="portrait-layer" src="" alt="" />
+  <img id="portrait-img-b" class="portrait-layer" src="" alt="" />
+</div>
+  </div>
+
+  <div id="textbox-row">
+
+    <div id="dialogue-pane">
+      <div id="speaker-row">
+        <div id="char-name"></div>
+        <div id="speaker-line"></div>
+      </div>
+      <div id="content-row">
+        <div id="portrait-wrap-legacy">
+          <img id="portrait-img-legacy" src="" alt="" />
+        </div>
+        <div id="text-content">
+          <div id="dialogue-text"><span id="typing-cursor"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="meta-pane">
+      <div id="meta-header">PROGRESS</div>
+      <div id="meta-location">—</div>
+      <div id="progress-wrap">
+        <div id="progress-label">
+          <span>SCENE</span>
+        </div>
+        <div id="progress-track"><div id="progress-fill"></div></div>
+        <div id="progress-dots"></div>
+      </div>
+      <button id="click-hint">CONTINUE</button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ── PAUSE MENU ─────────────────────────────────────── -->
+<div id="pause-menu" style="display:none;">
+  <div id="pause-backdrop"></div>
+  <div id="pause-panel">
+    <!-- Settings Panel (opened from Settings nav button) -->
+    <div id="settings-panel">
+      <div id="settings-box">
+        <div id="settings-heading">
+          <span id="settings-title">⚙ Settings</span>
+          <button id="settings-close">✕</button>
+        </div>
+
+        <!-- Music Volume -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Music Volume</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-music-pct">70%</span>
+            <input type="range" class="s-slider" id="sv-music" min="0" max="100" value="70">
+          </div>
+        </div>
+
+        <!-- SFX / Ambience (future-proof, stored but no audio hook yet) -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">SFX Volume</span>
+            <span class="s-hint">Sound effects &amp; ambience</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-sfx-pct">80%</span>
+            <input type="range" class="s-slider" id="sv-sfx" min="0" max="100" value="80">
+          </div>
+        </div>
+
+        <!-- Text Speed -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Text Speed</span>
+            <span class="s-hint">Characters per second</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-speed-pct">Normal</span>
+            <input type="range" class="s-slider" id="sv-speed" min="1" max="5" step="1" value="3">
+          </div>
+        </div>
+
+        <!-- Text Size -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Text Size</span>
+          </div>
+          <div class="s-seg" id="sv-textsize">
+            <button class="s-seg-btn" data-size="small">S</button>
+            <button class="s-seg-btn active" data-size="normal">M</button>
+            <button class="s-seg-btn" data-size="large">L</button>
+          </div>
+        </div>
+
+        <!-- Skip Seen Text -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Skip Seen Text</span>
+            <span class="s-hint">Hold Ctrl to fast-skip already-read lines</span>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="sv-skip" checked>
+            <span class="s-toggle-track"><span class="s-toggle-thumb"></span></span>
+          </label>
+        </div>
+
+        <!-- Auto-Advance -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Auto-Advance</span>
+            <span class="s-hint">Lines advance automatically after typing</span>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="sv-auto">
+            <span class="s-toggle-track"><span class="s-toggle-thumb"></span></span>
+          </label>
+        </div>
+
+        <!-- Controls / Keybindings -->
+        <div class="s-section-label">Controls</div>
+        <div id="sv-keybind-list"></div>
+        <button class="s-kb-reset" id="sv-kb-reset">Reset to Defaults</button>
+        <div class="s-kb-hint">Click a key chip, then press a new key to rebind. Click + to add another binding.</div>
+
+      </div>
+    </div>
+    <div id="pause-header">
+      <div id="pause-eyebrow">Menu</div>
+      <div id="pause-title">Paused</div>
+      <div id="pause-title-rule"></div>
+      <div id="pause-chapter-info" id="pause-chapter-info"></div>
+    </div>
+    <div id="pause-chapter-info-bar"></div>
+    <nav id="pause-nav">
+      <div id="pause-nav-buttons">
+        <button class="pause-btn" id="pause-resume">
+          <span class="pause-btn-icon">▷</span>Resume
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-restart" id="pause-restart">
+          <span class="pause-btn-icon">↺</span>Restart Scene
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-chapters" id="pause-map">
+          <span class="pause-chapters-label-row">
+            <span class="pause-chapters-dot"></span>
+            <span class="pause-btn-icon">◎</span>Chapter Select
+          </span>
+          <span class="pause-chapters-sub" id="pause-chapters-sub">View all chapters</span>
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-menu" id="pause-mainmenu">
+          <span class="pause-btn-icon">←</span>Main Menu
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn" id="pause-settings">
+          <span class="pause-btn-icon">⚙</span>Settings
+        </button>
+      </div>
+    </nav>
+  </div>
+</div>
+
+<!-- ── MOBILE MENU BUTTON ─────────────────────────────── -->
+<button id="mobile-menu-btn" aria-label="Pause / Menu" title="Pause [Esc]">⏸</button>
+
+<script>
+window.FC_CONFIG = {
+  chapter:  "Part 2 - Chapter 4 - Scene 3 - Dassa and the Facility",
+  file:     "C4S3.html",
+  nextFile: "C4S4.html",
+  scenes:   [
+    // OPTIMIZE THIS CHAPTER
+  {
+    character: '',
+    portrait: '',
+   
+    bg: 'bridge.webp',
+    location: '',
+    portrait: '',
+    text: `FUCK YOU, `,
+  },
+]
+};
+</script>
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   KIZUMICHI — SHARED SCENE ENGINE
+   ════════════════════════════════════════════════════════════════════
+   One engine file, loaded by every chapter/scene HTML page. Each page
+   still owns its own scene content (kept inline in its own <script>,
+   right in the HTML) so scene-specific tweaks and one-off effects stay
+   easy to find and safe to touch — only the reusable machinery
+   (typewriter, backgrounds, portraits, music, save/settings, pause
+   menu, etc.) lives here.
+
+   HOW A PAGE USES THIS FILE
+   ─────────────────────────
+   1. Before loading this file, the page sets window.FC_CONFIG:
+
+        window.FC_CONFIG = {
+          chapter:  "Part 1 - Chapter 1 - Scene 1 - Kaden", // shown in pause menu / save
+          file:     "C1.html",       // this page's own filename
+          rawFile:  "C1.html",       // (optional, defaults to `file`)
+          nextFile: "c1s2.html",     // where "advance past the last line" goes
+          endCard:  false,           // true = play the title-card outro instead of a plain cut (needs #end-card in the page)
+          scenes:   [ ... ]          // the scene array — unchanged from before
+        };
+
+   2. Then it loads this file with a normal script tag pointing at
+      engine.js (written here without angle brackets on purpose, so
+      this comment can't ever be mistaken for a real closing tag).
+
+   3. (Optional) Any bespoke, scene-only behavior — e.g. a one-off
+      cinematic — goes in a THIRD inline <script>, after engine.js.
+      It can safely override the base `showScene` like:
+
+        const _base = showScene;
+        showScene = function(i) { ...custom...; _base(i); };
+
+   4. The page's LAST script line calls:
+        FC_start();
+
+      This is deliberately not automatic — it lets step 3's overrides
+      register themselves before the very first scene actually renders.
+
+   TABLE OF CONTENTS (search for these exact headers to jump around)
+   ───────────────────────────────────────────────────────────────
+   ENGINE BOOT CONFIG      — reads window.FC_CONFIG into FC / scenes / NEXT_FILE
+   SAVE HELPER             — writes localStorage progress
+   ELEMENTS                — grabs every DOM element the engine touches
+   MUSIC CROSSFADE         — fades between background tracks
+   CROSSFADE BG            — fades between background images
+   PROGRESS                — the little dots along the top of the screen
+   TYPEWRITER              — the letter-by-letter dialogue text effect
+   KEYBINDING SYSTEM       — lets the player rebind the "advance" key
+   BOOT                    — showScene(): renders one scene (bg/music/portraits/text)
+   END-OF-SCENE TITLE CARD — the optional "chapter ended" outro screen
+   START                   — FC_start(): kicks off the very first scene
+   BACK/FORWARD-CACHE FIX  — repairs the page if the browser restores it from bfcache
+   PAUSE MENU              — the in-game pause overlay and its buttons
+   KEYBINDING SETTINGS UI  — the "rebind keys" list inside the settings panel
+   SETTINGS SYSTEM         — the settings panel itself (volume, text speed, etc.)
+   ════════════════════════════════════════════════════════════════════ */
+
+
+/* ── ENGINE BOOT CONFIG ──────────────────────────────────
+   Every scene page sets `window.FC_CONFIG` (chapter, file,
+   nextFile, scenes[, endCard]) in its own inline <script>
+   BEFORE loading this file. See any chapter HTML for the shape. */
+const FC = window.FC_CONFIG || {};
+let scenes = FC.scenes || [];
+const NEXT_FILE = FC.nextFile;
+
+/* ── SAVE HELPER ─────────────────────────────────────── */
+function saveProgress(sceneIndex) {
+  localStorage.setItem('fc_save', JSON.stringify({
+    chapter: FC.chapter,
+    file: FC.file,
+    rawFile: FC.rawFile || FC.file,
+    scene: sceneIndex
+  }
+  ));
+}
+
+// Save only when the player actually leaves — not on every scene transition.
+// suppressExitSave is set to true when a special save (e.g. a chapter-break
+// save, see FC.chapterBreak below) has already been written and shouldn't be
+// clobbered by this generic exit handler.
+let suppressExitSave = false;
+window.addEventListener('pagehide', () => { if (!suppressExitSave) saveProgress(index); });
+window.addEventListener('beforeunload', () => { if (!suppressExitSave) saveProgress(index); });
+
+/* ── ELEMENTS ────────────────────────────────────────── */
+// Every DOM element the engine needs, grabbed once up front. If you rename
+// an id in the HTML, this is the line you'd need to update to match.
+const bgm              = document.getElementById("bgm");
+/* ── MUSIC CROSSFADE ─────────────────────────────────── */
+// Smoothly fades the current background track out, swaps the audio file,
+// then fades the new one back in — instead of an abrupt cut. Called from
+// showScene() whenever a scene's `music` field differs from what's playing.
+let _currentMusicSrc = bgm.src;   // normalised absolute URL set by browser
+
+function changeMusic(filename) {
+  const newSrc = 'FC-OST/' + filename;
+  // bgm.src is always absolute; compare with a normalised version of newSrc
+  const abs = new URL(newSrc, location.href).href;
+  if (abs === _currentMusicSrc) return;          // already playing this track
+  _currentMusicSrc = abs;
+
+  const FADE_MS = 1200;
+  const step    = 50;
+  const startVol = bgm.volume;
+
+  // ── fade out ─────────────────────────────────────────
+  let vol = startVol;
+  const fadeOut = setInterval(() => {
+    vol = Math.max(0, vol - startVol / (FADE_MS / step));
+    bgm.volume = vol;
+    if (vol <= 0) {
+      clearInterval(fadeOut);
+      bgm.pause();
+      bgm.src  = newSrc;
+      bgm.load();
+      bgm.volume = 0;
+      bgm.play().catch(() => {});
+
+      // ── fade in ──────────────────────────────────────
+      let vi = 0;
+      const fadeIn = setInterval(() => {
+        vi = Math.min(startVol, vi + startVol / (FADE_MS / step));
+        bgm.volume = vi;
+        if (vi >= startVol) clearInterval(fadeIn);
+      }, step);
+    }
+  }, step);
+}
+
+const fadeOverlay      = document.getElementById('fade-overlay');
+const bgDrift          = document.getElementById('bg-drift');
+const bgBase           = document.getElementById("bg-base");
+const bgLayer          = document.getElementById("bg-layer");
+const charName         = document.getElementById('char-name');
+const speakerLine      = document.getElementById('speaker-line');
+const portraitWrap   = document.getElementById('portrait-wrap');
+// Per-slot state for up to 3 portraits
+const portraitSlots = [1,2,3].map(n => ({
+  slot:    document.getElementById(`portrait-slot-${n}`),
+  imgA:    document.getElementById(`portrait-img-${n}a`),
+  imgB:    document.getElementById(`portrait-img-${n}b`),
+  active:  'a',   // which layer is currently shown
+  current: '',    // current src
+}));
+const standingWrap     = document.getElementById('standing-portrait-wrap');
+const standingImg      = document.getElementById('standing-portrait-img');
+const dialogueEl       = document.getElementById('dialogue-text');
+const cursor           = document.getElementById('typing-cursor');
+const dotsEl           = document.getElementById('progress-dots');
+const progressFill     = document.getElementById('progress-fill');
+
+/* ── CROSSFADE BG ────────────────────────────────────── */
+// Crossfades between two full-screen background images (see changeBackground
+// below). A background never just "cuts" — the old and new image overlap
+// and fade into each other over CROSSFADE_MS milliseconds.
+const CROSSFADE_MS = 2000;
+let currentBgUrl = '', isFading = false, pendingBg = null;
+
+// Gives each background a tiny, consistent amount of pan/zoom/brightness
+// drift so the scene doesn't feel like a static photo. "Consistent" is the
+// key word: the same background filename always gets the same motion,
+// because the numbers below are derived from the text itself (a simple
+// hash), not from Math.random() — so it won't flicker between different
+// values every time the same background is shown again.
+function applyBackgroundMotion(seedText) {
+  if (!seedText) return;
+  let hash = 0;
+  for (let i = 0; i < seedText.length; i++) hash = (hash * 31 + seedText.charCodeAt(i)) | 0;
+  const panX = ((hash % 9) - 4) * 0.35;
+  const panY = (((hash >> 3) % 9) - 4) * 0.28;
+  const zoom = 1.02 + ((Math.abs(hash) % 6) * 0.004);
+  const filter = 0.92 + ((Math.abs(hash >> 2) % 8) * 0.01);
+  const transformValue = `translate(${panX}%, ${panY}%) scale(${zoom.toFixed(3)})`;
+
+  bgBase.style.transform = transformValue;
+  bgLayer.style.transform = transformValue;
+  bgBase.style.filter = `brightness(${filter.toFixed(2)})`;
+  bgLayer.style.filter = `brightness(${(filter - 0.02).toFixed(2)})`;
+
+  // Re-trigger slow drift so each background has slightly different momentum.
+  bgDrift.style.animation = 'none';
+  void bgDrift.offsetWidth;
+  bgDrift.style.animation = '';
+}
+
+function setTransition(el, duration) {
+  el.style.transition = duration
+    ? `opacity ${duration}ms cubic-bezier(0.4,0,0.2,1)`
+    : 'none';
+}
+
+function changeBackground(newBg) {
+  const url = `url('FC-MEDIA/${newBg}')`;
+  if (url === currentBgUrl) return;
+  if (isFading) { pendingBg = newBg; return; }
+  _doFade(url, newBg);
+}
+
+function _doFade(url, seedText) {
+  isFading = true;
+  currentBgUrl = url;
+  setTransition(bgLayer, 0);
+  bgLayer.style.backgroundImage = url;
+  applyBackgroundMotion(seedText || url);
+  bgLayer.style.opacity = '0';
+  void bgLayer.offsetWidth;
+  setTransition(bgLayer, CROSSFADE_MS);
+  bgLayer.style.opacity = '1';
+  setTimeout(() => {
+    setTransition(bgBase, 0);
+    bgBase.style.backgroundImage = url;
+    bgBase.style.opacity = '1';
+    void bgBase.offsetWidth;
+    setTransition(bgLayer, 0);
+    bgLayer.style.opacity = '0';
+    void bgLayer.offsetWidth;
+    isFading = false;
+    if (pendingBg) { const n = pendingBg; pendingBg = null; changeBackground(n); }
+  }, CROSSFADE_MS + 50);
+}
+
+/* ── PROGRESS ────────────────────────────────────────── */
+// Builds one small dot per scene along the top progress bar. Called once,
+// when a page first loads, from FC_start() below.
+function buildDots() {
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < scenes.length; i++) {
+    const d = document.createElement('div');
+    d.className = 'pdot';
+    dotsEl.appendChild(d);
+  }
+}
+
+/* ── TYPEWRITER ──────────────────────────────────────── */
+// Reveals dialogue one character at a time, like most visual novels do,
+// instead of showing the whole line instantly. getTypingDelay() below
+// slows down slightly on punctuation so it reads more like natural speech.
+const TYPING_SPEED = 14;
+let index = 0, isTyping = false, typingTimeout = null, currentFullText = '';
+let isAdvancing = false; // true from showScene() start until typeText() actually begins — blocks input + freezes vignette
+
+function getTypingDelay(ch) {
+  if (/[,.!?]/.test(ch)) return TYPING_SPEED * 3;
+  if (/[:;]/.test(ch)) return TYPING_SPEED * 2;
+  if (/\s/.test(ch)) return Math.max(8, TYPING_SPEED - 4);
+  return TYPING_SPEED;
+}
+
+/* ── KEYBINDING SYSTEM ──────────────────────────────────
+   Lets the player change which key (or mouse click) triggers "advance".
+   Bindings are stored in localStorage under KEYBIND_KEY. isBoundCode()
+   below is the function everything else calls to ask "is this key/click
+   currently mapped to this action?" */
+const KEYBIND_KEY = 'fc_keybinds';
+const KEYBIND_ACTIONS = [
+  { id: 'advance', label: 'Advance / Continue' }
+];
+// Internal key codes we store: 'Mouse0' for left click, otherwise e.code values.
+const KEYBIND_DEFAULTS = {
+  advance: ['Mouse0', 'KeyZ', 'Space', 'Enter', 'NumpadEnter', 'ArrowDown']
+};
+const KEYBIND_DISPLAY = {
+  Mouse0: 'Click', KeyZ: 'Z', Space: 'Space', Enter: 'Enter',
+  NumpadEnter: 'Num ⏎', ArrowDown: '↓', ArrowUp: '↑', ArrowLeft: '←', ArrowRight: '→',
+  Escape: 'Esc'
+};
+function kbDisplayName(code) {
+  if (KEYBIND_DISPLAY[code]) return KEYBIND_DISPLAY[code];
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3);
+  if (/^Digit[0-9]$/.test(code)) return code.slice(5);
+  return code;
+}
+function loadKeybinds() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEYBIND_KEY) || '{}');
+    const merged = {};
+    KEYBIND_ACTIONS.forEach(a => {
+      merged[a.id] = Array.isArray(raw[a.id]) && raw[a.id].length ? raw[a.id] : KEYBIND_DEFAULTS[a.id].slice();
+    });
+    return merged;
+  } catch (e) {
+    const d = {}; KEYBIND_ACTIONS.forEach(a => d[a.id] = KEYBIND_DEFAULTS[a.id].slice()); return d;
+  }
+}
+function saveKeybinds(kb) { localStorage.setItem(KEYBIND_KEY, JSON.stringify(kb)); }
+window.FC_KEYBINDS = loadKeybinds();
+
+function isBoundCode(actionId, code) {
+  const kb = window.FC_KEYBINDS || {};
+  return Array.isArray(kb[actionId]) && kb[actionId].indexOf(code) !== -1;
+}
+
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#pause-menu') || e.target.closest('#mobile-menu-btn')) return;
+  if (e.button !== undefined && e.button !== 0) return;
+  if (!isBoundCode('advance', 'Mouse0')) return;
+  advance();
+});
+
+/* ── BOOT ──────────────────────────────────────────────
+   showScene(i) is the heart of the engine: given a scene index, it puts
+   everything on screen — background, music, portraits, and (once the
+   portrait has finished appearing) the dialogue text itself. */
+const metaLocation     = document.getElementById('meta-location');
+
+// Scenes can involve async work (an image loading, a delayed portrait
+// swap). If the player advances again before that finishes, the old
+// callback shouldn't still be allowed to affect the screen. sceneToken
+// is a simple "ticket" system for that: each showScene() call grabs the
+// current number, and any callback it schedules checks that number is
+// still the latest before touching anything.
+let sceneToken = 0;
+
+function showScene(i) {
+  const myToken = ++sceneToken; // this call "owns" the token until a newer one replaces it
+  const scene = scenes[i];
+  isAdvancing = true;
+
+  // A scene can name one or more characters as newly introduced here
+  // (see scene.introduces in the scenes array). First time we see each
+  // one, add it to the codex and pop the "Character Data Added" toast.
+  if (scene.introduces && scene.introduces.length) {
+    scene.introduces.forEach(unlockCharacter);
+  }
+  document.body.classList.remove('portrait-transitioning'); // clear any stale veil left by a superseded scene
+  updateProgress(i);
+  if (scene.bg) changeBackground(scene.bg);
+  if (scene.music !== undefined) changeMusic(scene.music);
+  if (scene.sfx) {
+    const sfx = new Audio('FC-MEDIA/' + scene.sfx);
+    sfx.volume = bgm.volume > 0 ? Math.min(1, bgm.volume * 1.2) : 0.7;
+    sfx.play().catch(() => {});
+  }
+  if (scene.location) metaLocation.textContent = '\u{1F4CD} ' + scene.location;
+  if (scene.character) {
+    charName.textContent = scene.character;
+    charName.classList.add('visible');
+  } else {
+    charName.textContent = '';
+    charName.classList.remove('visible');
+  }
+  // ── Multi-portrait routing ──
+  const srcsX = [
+    scene.portrait1 || scene.portrait || scene.standingPortrait || '',
+    scene.portrait2 || '',
+    scene.portrait3 || '',
+  ];
+  portraitWrap.setAttribute('data-count', Math.max(1, srcsX.filter(s=>!!s).length));
+
+  // Track whether any portrait is actually changing this scene — if so,
+  // we delay the dialogue text so the character visibly appears first.
+  let portraitChanged = false;
+  const pendingLoads = []; // promises that resolve once each new portrait image has actually loaded (or failed/timed out)
+
+  srcsX.forEach((src, i) => {
+    const st = portraitSlots[i];
+    if (src) {
+      const newSrc = 'FC-CHAR/' + src;
+      if (st.current === newSrc && st.slot.classList.contains('active')) return;
+      portraitChanged = true;
+      st.current = newSrc;
+      const nxt = st.active === 'a' ? st.imgB : st.imgA;
+      const cur = st.active === 'a' ? st.imgA : st.imgB;
+
+      const loadPromise = new Promise((resolve) => {
+        let settled = false;
+        const settle = () => {
+          if (settled) return;
+          settled = true;
+          resolve();
+        };
+        // Safety net: never block the scene forever if an image is slow, missing, or cached oddly.
+        const fallback = setTimeout(settle, 1200);
+        nxt.onload = () => { clearTimeout(fallback); settle(); };
+        nxt.onerror = () => { clearTimeout(fallback); settle(); };
+        nxt.src = newSrc;
+        // If the browser already has this image fully decoded (cache hit), `complete` may
+        // already be true before onload would ever fire — handle that case immediately.
+        if (nxt.complete && nxt.naturalWidth > 0) { clearTimeout(fallback); settle(); }
+      }).then(() => new Promise((resolveFade) => {
+        if (sceneToken !== myToken) { resolveFade(); return; } // a newer scene has since taken over — don't apply a stale fade-in
+        nxt.classList.add('shown'); cur.classList.remove('shown');
+        st.active = st.active === 'a' ? 'b' : 'a';
+        st.slot.classList.add('active');
+        portraitWrap.classList.add('active');
+        // Hold the veil (vignette/text/input) until the portrait's own CSS fade-in
+        // (.portrait-layer transition: opacity 0.38s) has actually finished playing,
+        // not just until the image bytes arrived — otherwise the veil lifts mid-fade.
+        setTimeout(resolveFade, 380);
+      }));
+      pendingLoads.push(loadPromise);
+    } else {
+      st.slot.classList.remove('active');
+      if (!srcsX.some(s => !!s)) portraitWrap.classList.remove('active');
+      setTimeout(() => {
+        if (sceneToken !== myToken) return; // scene moved on — don't clear a slot that belongs to a newer scene
+        st.imgA.classList.remove('shown'); st.imgA.src = '';
+        st.imgB.classList.remove('shown'); st.imgB.src = '';
+        st.active = 'a'; st.current = '';
+      }, 450);
+    }
+  });
+
+  if (portraitChanged) {
+    document.body.classList.add('portrait-transitioning');
+    // The vignette/text veil itself takes 550ms to fully fade OUT once this class is
+    // added (#bg-vignette/#bg-light-sweep transition: 0.55s). If we remove the class
+    // before that fade-out has finished, the veil immediately reverses direction and
+    // fades back in early. So the veil must stay up for at least its own fade-out
+    // duration, in addition to however long the portrait actually takes to load +
+    // fade in. Whichever is longer wins.
+    const veilSettleTime = new Promise((resolve) => setTimeout(resolve, 550));
+    Promise.all([veilSettleTime, ...pendingLoads]).then(() => {
+      if (sceneToken !== myToken) return; // a later scene already moved past this one
+      // Beat: let the portrait sit fully visible, on its own, for a moment before the
+      // veil starts lifting — the reveal should read as "character has arrived, THEN
+      // the scene opens back up," not as one motion blending into the next.
+      setTimeout(() => {
+        if (sceneToken !== myToken) return; // a later scene already moved past this one
+        document.body.classList.remove('portrait-transitioning');
+        isAdvancing = false;
+        typeText(scene.text);
+      }, 220);
+    });
+  } else {
+    isAdvancing = false;
+    typeText(scene.text);
+  }
+
+  // ── Delayed in-scene portrait swap (e.g. a fleeting expression that
+  // settles back to neutral) — crossfades the same slot's A/B layers
+  // exactly like a normal portrait change, but without touching the
+  // dialogue text or the portrait-transitioning veil.
+  if (scene.portraitSwap) {
+    const { slot: slotNum, to, delay } = scene.portraitSwap;
+    const st = portraitSlots[slotNum - 1];
+    const sceneAtSwap = i;
+    setTimeout(() => {
+      if (index !== sceneAtSwap || sceneToken !== myToken) return; // scene moved on — abandon the swap
+      const newSrc = 'FC-CHAR/' + to;
+      if (st.current === newSrc) return;
+      st.current = newSrc;
+      const nxt = st.active === 'a' ? st.imgB : st.imgA;
+      const cur = st.active === 'a' ? st.imgA : st.imgB;
+      nxt.onload = () => {
+        if (index !== sceneAtSwap || sceneToken !== myToken) return;
+        nxt.classList.add('shown'); cur.classList.remove('shown');
+        st.active = st.active === 'a' ? 'b' : 'a';
+      };
+      nxt.src = newSrc;
+      if (nxt.complete && nxt.naturalWidth > 0) { nxt.onload(); }
+    }, delay || 1200);
+  }
+}
+
+// Fewer lines are grouped together before the box clears when the player
+// is on a bigger text size — keeps 'large' comfortably large without the
+// box needing to shrink it back down to fit three lines at once.
+function currentGroupSize() {
+  const map = { small: 4, normal: 3, large: 2 };
+  const key = (window.FC_SETTINGS && window.FC_SETTINGS.textSize) || 'normal';
+  return map[key] || 3;
+}
+let groupLines = [];
+
+function renderGroup(addCursor) {
+  dialogueEl.innerHTML = '';
+  groupLines.forEach((line, li) => {
+    if (li > 0) {
+      dialogueEl.appendChild(document.createElement('br'));
+      dialogueEl.appendChild(document.createElement('br'));
+    }
+    if (line.char) {
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'nvl-speaker';
+      nameSpan.textContent = line.char + ' ';
+      dialogueEl.appendChild(nameSpan);
+    }
+    const textSpan = document.createElement('span');
+    textSpan.className = 'nvl-text-line';
+    textSpan.appendChild(document.createTextNode(line.text));
+    dialogueEl.appendChild(textSpan);
+  });
+  if (addCursor) dialogueEl.appendChild(cursor);
+  fitTextBlock();
+}
+
+// Keeps dialogue text fully inside the text box at any resolution or text-size
+// setting: it starts at the size the player chose (small/normal/large) and only
+// steps the font down, in small increments, if that specific line would overflow —
+// no scrollbar, no clipped text, and it never shrinks more than it has to.
+function fitTextBlock() {
+  const block = document.getElementById('text-block');
+  if (!block || !dialogueEl) return;
+  const sizes = window.FC_TEXT_SIZES || { small: '0.95rem', normal: '1.1rem', large: '1.3rem' };
+  const key = (window.FC_SETTINGS && window.FC_SETTINGS.textSize) || 'normal';
+  const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  let px = parseFloat(sizes[key] || sizes.normal) * rootPx;
+  const floor = rootPx * 0.72;
+  const lineHeights = window.FC_LINE_HEIGHTS || { small: 1.78, normal: 1.7, large: 1.5 };
+  dialogueEl.style.lineHeight = lineHeights[key] || lineHeights.normal;
+  const cs = getComputedStyle(block);
+  const maxHpx = parseFloat(cs.maxHeight) || block.clientHeight;
+  const padV = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+  const available = maxHpx - padV;
+  dialogueEl.style.fontSize = px + 'px';
+  let guard = 0;
+  while (dialogueEl.scrollHeight > available && px > floor && guard < 40) {
+    px -= 1;
+    dialogueEl.style.fontSize = px + 'px';
+    guard++;
+  }
+}
+window.fitTextBlock = fitTextBlock;
+window.addEventListener('resize', () => { if (typeof fitTextBlock === 'function') fitTextBlock(); });
+
+function typeText(text) {
+  currentFullText = text;
+  isTyping = true;
+  cursor.classList.remove('hidden');
+  const posInGroup = index % currentGroupSize();
+  if (posInGroup === 0) {
+    groupLines = [];
+    dialogueEl.style.opacity = '0';
+    setTimeout(() => { dialogueEl.style.opacity = '1'; }, 80);
+  }
+  const currentChar = scenes[index] ? scenes[index].character || '' : '';
+  groupLines.push({ char: currentChar, text: '' });
+  const lineIdx = groupLines.length - 1;
+  renderGroup(true);
+  let charIndex = 0;
+  function typeNext() {
+    if (charIndex < text.length) {
+      const ch = text[charIndex++];
+      groupLines[lineIdx].text += ch;
+      renderGroup(true);
+      typingTimeout = setTimeout(typeNext, getTypingDelay(ch));
+    } else { finishTyping(); }
+  }
+  typeNext();
+}
+
+function finishTyping() {
+  if (typingTimeout) { clearTimeout(typingTimeout); typingTimeout = null; }
+  isTyping = false;
+  cursor.classList.add('hidden');
+  groupLines[groupLines.length - 1].text = currentFullText;
+  renderGroup(false);
+  // Add next indicator after last rendered line
+  // ▶ = more lines in this group; ◆ = end of group (screen will clear on next click)
+  const posInGroup = index % currentGroupSize();
+  const isLastInGroup = posInGroup === currentGroupSize() - 1;
+  const isLastScene   = index === scenes.length - 1;
+  const lastTextLine = dialogueEl.querySelector('.nvl-text-line:last-of-type');
+  if (lastTextLine) {
+    const ind = document.createElement('span');
+    ind.id = 'next-indicator';
+    const isGroupEnd = isLastInGroup || isLastScene;
+    ind.textContent = isGroupEnd ? ' ◇' : ' ▷ ▷';
+    ind.className = isGroupEnd ? 'ind-diamond' : 'ind-arrow';
+    lastTextLine.appendChild(ind);
+  }
+  // Auto-advance if enabled
+  if (window.FC_SETTINGS && window.FC_SETTINGS.autoAdvance) {
+    autoAdvanceTimer = setTimeout(() => { advance(); }, 1500);
+  }
+}
+
+let autoAdvanceTimer = null;
+let sceneHasEnded = false;
+
+function advance() {
+  if (sceneHasEnded) return; // scene is already wrapping up — ignore further input
+  if (autoAdvanceTimer) { clearTimeout(autoAdvanceTimer); autoAdvanceTimer = null; }
+  if (isAdvancing) return; // portrait is still animating in — ignore clicks until it settles
+  const _old = document.getElementById('next-indicator'); if (_old) _old.remove();
+  if (isTyping) { finishTyping(); return; }
+  if (typingTimeout) { clearTimeout(typingTimeout); typingTimeout = null; }
+  index++;
+  if (index < scenes.length) {
+    showScene(index);
+  } else {
+    sceneHasEnded = true;
+    // Some pages (e.g. an optional interlude) need "continue" to resume
+    // somewhere other than this page's own NEXT_FILE — write that save now
+    // and stop the generic exit-save from overwriting it on the way out.
+    if (FC.chapterBreak) {
+      try {
+        localStorage.setItem('fc_save', JSON.stringify({
+          chapter: FC.chapterBreak.chapter,
+          file: FC.chapterBreak.file,
+          rawFile: FC.chapterBreak.rawFile || FC.chapterBreak.file,
+          nextAct: true
+        }));
+        suppressExitSave = true;
+      } catch(e) {}
+    }
+    if (FC.endCard && document.getElementById('end-card')) {
+      playEndCard();
+    } else {
+      fadeOverlay.style.opacity = 1;
+      setTimeout(() => { window.location.href = NEXT_FILE; }, 800);
+    }
+  }
+}
+
+/* ── END-OF-SCENE TITLE CARD SEQUENCE ────────────────────────── */
+function playEndCard() {
+  const endCard = document.getElementById('end-card');
+  const endCardBg = document.getElementById('end-card-bg');
+  const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+  if (mobileMenuBtn) mobileMenuBtn.style.display = 'none';
+
+  // Carry the scene's own art into the card instead of cutting to a void —
+  // same trick the reference title card uses, minus the characters.
+  if (endCardBg) endCardBg.style.backgroundImage = bgBase.style.backgroundImage || '';
+
+  // Duck the music out gently rather than cutting it dead.
+  const startVol = bgm.volume;
+  const duckStep = 50, duckMs = 1400;
+  let dv = startVol;
+  const duck = setInterval(() => {
+    dv = Math.max(0, dv - startVol / (duckMs / duckStep));
+    bgm.volume = dv;
+    if (dv <= 0) { clearInterval(duck); bgm.pause(); }
+  }, duckStep);
+
+  // Fade the live scene to black first...
+  fadeOverlay.style.opacity = 1;
+
+  setTimeout(() => {
+    // ...then reveal the title card over the black.
+    endCard.classList.add('showing');
+
+    // Hold on the card so it reads as a beat, not a flicker.
+    setTimeout(() => {
+      endCard.classList.remove('showing');
+      endCard.classList.add('hiding');
+      setTimeout(() => { window.location.href = NEXT_FILE; }, 900);
+    }, 3400);
+  }, 850);
+}
+
+function updateProgress(i) {
+  const dots = dotsEl.querySelectorAll('.pdot');
+  dots.forEach((d, idx) => {
+    d.className = 'pdot';
+    if (idx < i)  d.classList.add('done');
+    if (idx === i) d.classList.add('current');
+  });
+  const pct = ((i + 1) / scenes.length) * 100;
+  progressFill.style.width = pct + '%';
+}
+
+function getSavedScene() {
+  try {
+    const urlParam = new URLSearchParams(window.location.search).get('scene');
+    if (urlParam !== null) return Math.max(0, Math.min(parseInt(urlParam, 10), scenes.length - 1));
+  } catch(e) {}
+  return 0;
+}
+
+/* ── START ────────────────────────────────────────────
+   Each page calls this itself, as the LAST line of its own inline
+   script — after `window.FC_CONFIG` is set and after any bespoke
+   per-scene overrides (e.g. a cinematic wrapping `showScene`) have
+   been installed. Keeping this a manual call (instead of engine.js
+   auto-running on load) is what lets a page safely override engine
+   behavior before the first scene actually renders. */
+function FC_start() {
+  buildDots();
+  index = getSavedScene();
+  showScene(index);
+}
+
+window.addEventListener("load", () => {
+  bgm.muted = false;
+  bgm.play().catch(() => {});
+  fadeOverlay.style.opacity = 0;
+
+  // Sync standing portrait reveal with the fade-in (0.8s transition)
+  setTimeout(() => {
+    window._sceneHasLoaded = true;
+    // NVL: portrait handled by showScene
+  }, 200);
+});
+
+/* ── BACK/FORWARD-CACHE FIX ──────────────────────────────────────
+   Clicking back into this page can restore it from the browser's
+   bfcache instead of re-running it, so anything left mid-transition
+   (fade-overlay at opacity 1, an end card showing, music ducked, the
+   mobile menu button hidden) would stay stuck until a manual refresh.
+   'pageshow' fires on that restore (event.persisted === true) even
+   though 'load' does not, so we use it to put the scene back the way
+   it should look when the player actually lands on it.
+   ────────────────────────────────────────────────────────────────── */
+window.addEventListener('pageshow', (event) => {
+  if (!event.persisted) return; // normal first load already handled above
+
+  sceneHasEnded = false;
+
+  const endCard = document.getElementById('end-card');
+  if (endCard) endCard.classList.remove('showing', 'hiding');
+
+  const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+  if (mobileMenuBtn) mobileMenuBtn.style.display = '';
+
+  fadeOverlay.style.transition = 'none';
+  fadeOverlay.style.opacity = 1;
+  void fadeOverlay.offsetWidth;
+  fadeOverlay.style.transition = '';
+
+  const targetVol = (window.FC_SETTINGS && typeof window.FC_SETTINGS.musicVol === 'number')
+    ? window.FC_SETTINGS.musicVol / 100
+    : 0.7;
+  bgm.muted = false;
+  bgm.volume = targetVol;
+  bgm.play().catch(() => {});
+
+  requestAnimationFrame(() => { fadeOverlay.style.opacity = 0; });
+});
+
+// Small helper: restarts a CSS animation on an element by removing it and
+// forcing the browser to notice before adding it back. (Not currently
+// called anywhere, but kept here since a couple of CSS effects elsewhere
+// in the page may want it — see applyBackgroundMotion above for the same
+// trick used inline.)
+function reAnimateEl(el) {
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = '';
+}
+
+/* ── PAUSE MENU ──────────────────────────────────────────
+   The overlay that opens on Escape / the mobile menu button: resume,
+   restart the current scene, jump to the map, or go to the main menu. */
+const pauseMenu = document.getElementById('pause-menu');
+
+function openPause() {
+  pauseMenu.style.display = 'block';
+  // Show chapter info in header
+  try {
+    const save = JSON.parse(localStorage.getItem('fc_save') || '{}');
+    const info = document.getElementById('pause-chapter-info');
+    if (info && save.chapter) info.innerHTML = 'Currently: <b>' + save.chapter + '</b>';
+    const infoBar = document.getElementById('pause-chapter-info-bar');
+    if (infoBar) infoBar.innerHTML = save.chapter ? 'Currently: <b>' + save.chapter + '</b>' : '';
+    const sub = document.getElementById('pause-chapters-sub');
+    if (sub) sub.textContent = save.chapter ? save.chapter : 'View all chapters';
+  } catch(e) {}
+}
+function closePause() {
+  pauseMenu.style.display = 'none';
+}
+
+document.getElementById('pause-resume').addEventListener('click', closePause);
+
+const pauseMapBtn = document.getElementById('pause-map');
+if (pauseMapBtn) pauseMapBtn.addEventListener('click', () => {
+  fadeOverlay.style.opacity = 1;
+  setTimeout(() => { window.location.href = FC.mapFile || 'worldmap.html'; }, 800);
+});
+
+document.getElementById('pause-restart').addEventListener('click', () => {
+  closePause();
+  showScene(index);
+});
+
+const pauseMainMenuBtn = document.getElementById('pause-mainmenu');
+if (pauseMainMenuBtn) pauseMainMenuBtn.addEventListener('click', () => {
+  fadeOverlay.style.opacity = 1;
+  setTimeout(() => { window.location.href = 'launcher.html'; }, 800);
+});
+
+document.getElementById('pause-backdrop').addEventListener('click', closePause);
+
+document.getElementById('mobile-menu-btn').addEventListener('click', openPause);
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    // Escape closes whichever sub-panel is on top first (Character Data,
+    // then Settings), and only toggles the pause menu itself once neither
+    // of those is open — otherwise Esc would open/close the pause menu
+    // underneath a panel that's still sitting on top of it.
+    const settingsPanelEl = document.getElementById('settings-panel');
+    if (charPanel.classList.contains('open')) {
+      closeCharPanel();
+      return;
+    }
+    if (settingsPanelEl && settingsPanelEl.classList.contains('open')) {
+      settingsPanelEl.classList.remove('open');
+      return;
+    }
+    if (pauseMenu.style.display === 'none') {
+      openPause();
+    } else {
+      closePause();
+    }
+    return;
+  }
+  if (window._kbListening) return; // rebind UI is capturing a key — don't advance
+  if (pauseMenu.style.display !== 'none') return; // menu open — don't advance underneath it
+  const tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON') return;
+  if (isBoundCode('advance', e.code)) {
+    e.preventDefault();
+    advance();
+  }
+});
+
+/* ── CHARACTER CODEX ──────────────────────────────────────
+   A small "unlockable character bios" system, entirely self-contained
+   in this file — no HTML edits needed in any chapter page.
+
+   How a scene marks someone as introduced: add an `introduces` array to
+   that scene object, e.g. `introduces: ['kaden']`. The keys are whatever
+   you use in CHARACTER_DB below. The very first time the player reaches
+   a scene naming a given key, three things happen: it's remembered in
+   localStorage, a "Character Data Added" toast appears in the corner,
+   and the entry becomes visible (instead of a "???" silhouette) in the
+   Character Data panel, opened from a new button in the pause menu.
+
+   This is just starting data — feel free to add more characters, or
+   edit names/roles/bios, any time. Portraits point at the same FC-CHAR/
+   files already used for in-scene portraits, so no new art is needed. */
+const CHARACTER_DB = {
+  kaden:  { name: 'Kaden Acies',    role: 'Protagonist',
+            portrait: '',
+            bio: "An academy-trained practitioner, following the only lead his brother ever sent him: a letter, and a name." },
+  kurt:   { name: 'Kurt',           role: 'Fire practitioner',
+            portrait: '',
+            bio: "Generous almost to a fault. Has a way of making a room feel warmer than it actually is — literally, sometimes." },
+  sophia: { name: 'Sophia',         role: 'Healer',
+            portrait: '',
+            bio: "Keeps the group's folder, its schedule, and — when it counts — its people, in one piece." },
+  ava:    { name: 'Ava',            role: 'Scout',
+            portrait: '',
+            bio: "Trained to be unnoticed rather than hidden. Says the fewest words of anyone, and means the most by them." },
+  noah:   { name: 'Noah',           role: 'Researcher',
+            portrait: '',
+            bio: "Rarely seen without his notebook. Found the anomaly that started all of this." },
+  iris:   { name: 'Iris Anima',     role: 'Fugitive of the Anima bloodline',
+            portrait: '',
+            bio: "Three months a fugitive from her own family, and carrying a plan she hasn't fully explained to anyone yet." },
+  mela:   { name: 'Mela',           role: "Iris's cousin",
+            portrait: '',
+            bio: "Fifteen, sharp, and freshly out of hiding. Tends to say what everyone else is already thinking." },
+  velda:  { name: 'Professor Velda', role: 'Academy mentor',
+            portrait: '',
+            bio: "Kaden's mentor at the Academy, and one of the few people left who actually knew his father." },
+  naomi:  { name: 'Naomi Acies',    role: "Kaden's mother",
+            portrait: '',
+            bio: "Kept two hard truths from her son for years — his father's death, and his brother's fate — until she couldn't anymore." },
+};
+
+const CHAR_UNLOCK_KEY = 'fc_characters';
+
+function getUnlockedCharacters() {
+  try { return JSON.parse(localStorage.getItem(CHAR_UNLOCK_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+
+function unlockCharacter(key) {
+  if (!CHARACTER_DB[key]) return; // unknown key — nothing to unlock, ignore quietly
+  const unlocked = getUnlockedCharacters();
+  if (unlocked.includes(key)) return; // already seen this character before
+  unlocked.push(key);
+  try { localStorage.setItem(CHAR_UNLOCK_KEY, JSON.stringify(unlocked)); } catch(e) {}
+  showCharacterToast(CHARACTER_DB[key]);
+  refreshCharacterPanel(); // no-op if the panel isn't open right now
+}
+
+// ── One-time CSS injection ──
+// Every chapter page's own <style> block is per-page, so instead of
+// editing 20+ HTML files, the codex's styling is injected here, once,
+// the first time this script runs on a page.
+
+
+// ── Toast ──
+const toastContainer = document.createElement('div');
+toastContainer.id = 'fc-toast-container';
+document.body.appendChild(toastContainer);
+
+function showCharacterToast(charData) {
+  const toast = document.createElement('div');
+  toast.className = 'fc-toast';
+  toast.innerHTML =
+    '<div class="fc-toast-portrait" style="background-image:url(\'FC-CHAR/' + charData.portrait + '\')"></div>' +
+    '<div class="fc-toast-text">' +
+      '<div class="fc-toast-label">Character Data Added</div>' +
+      '<div class="fc-toast-name">' + charData.name + '</div>' +
+    '</div>';
+  toastContainer.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('fc-toast-in'));
+  setTimeout(() => {
+    toast.classList.remove('fc-toast-in');
+    setTimeout(() => toast.remove(), 400);
+  }, 3600);
+}
+
+// ── Pause menu button + panel (both built here, not in the HTML) ──
+const charPanel = document.createElement('div');
+charPanel.id = 'char-panel';
+charPanel.innerHTML =
+  '<div id="char-box">' +
+    '<div id="char-heading">' +
+      '<span id="char-title">Character Data<span id="char-count"></span></span>' +
+      '<button id="char-close">✕</button>' +
+    '</div>' +
+    '<div id="char-list"></div>' +
+  '</div>';
+document.body.appendChild(charPanel);
+
+function openCharPanel() {
+  charPanel.classList.add('open');
+  refreshCharacterPanel();
+}
+function closeCharPanel() {
+  charPanel.classList.remove('open');
+}
+function refreshCharacterPanel() {
+  if (!charPanel.classList.contains('open')) return; // don't bother building it while hidden
+  const unlocked = getUnlockedCharacters();
+  const listEl = document.getElementById('char-list');
+  const countEl = document.getElementById('char-count');
+  const allKeys = Object.keys(CHARACTER_DB);
+  if (countEl) countEl.textContent = ' (' + unlocked.length + ' / ' + allKeys.length + ')';
+  listEl.innerHTML = allKeys.map(key => {
+    const data = CHARACTER_DB[key];
+    if (unlocked.includes(key)) {
+      return '<div class="char-card">' +
+        '<div class="char-card-portrait" style="background-image:url(\'FC-CHAR/' + data.portrait + '\')"></div>' +
+        '<div class="char-card-body">' +
+          '<div class="char-card-name">' + data.name + '</div>' +
+          '<div class="char-card-role">' + data.role + '</div>' +
+          '<div class="char-card-bio">' + data.bio + '</div>' +
+        '</div>' +
+      '</div>';
+    } else {
+      return '<div class="char-card locked">' +
+        '<div class="char-card-portrait">?</div>' +
+        '<div class="char-card-body">' +
+          '<div class="char-card-name">???</div>' +
+          '<div class="char-card-role">Not yet discovered</div>' +
+        '</div>' +
+      '</div>';
+    }
+  }).join('');
+}
+
+document.getElementById('char-close').addEventListener('click', closeCharPanel);
+charPanel.addEventListener('click', (e) => { if (e.target === charPanel) closeCharPanel(); });
+
+// Insert the nav button itself, right before Settings, matching the
+// existing pause-btn markup/classes exactly so it looks native.
+(function addCharacterDataButton() {
+  const navButtons = document.getElementById('pause-nav-buttons');
+  const settingsBtn = document.getElementById('pause-settings');
+  if (!navButtons || !settingsBtn) return;
+
+  const sep = document.createElement('div');
+  sep.className = 'pause-nav-sep';
+
+  const btn = document.createElement('button');
+  btn.className = 'pause-btn';
+  btn.id = 'pause-characters';
+  btn.innerHTML = '<span class="pause-btn-icon">◈</span>Character Data';
+  btn.addEventListener('click', openCharPanel);
+
+  navButtons.insertBefore(sep, settingsBtn);
+  navButtons.insertBefore(btn, settingsBtn);
+})();
+
+/* ── KEYBINDING SETTINGS UI ──────────────────────────────
+   Renders the list of rebindable keys inside the settings panel and
+   handles the "click a chip, then press a new key" rebind flow. This is
+   the UI on top of the KEYBINDING SYSTEM further up the file. */
+(function() {
+  const listEl = document.getElementById('sv-keybind-list');
+  if (!listEl) return;
+  let listeningChip = null;
+
+  function renderKeybindList() {
+    const kb = loadKeybinds();
+    window.FC_KEYBINDS = kb;
+    listEl.innerHTML = '';
+    KEYBIND_ACTIONS.forEach(action => {
+      const row = document.createElement('div');
+      row.className = 's-kb-row';
+      const label = document.createElement('span');
+      label.className = 's-kb-label';
+      label.textContent = action.label;
+      row.appendChild(label);
+
+      const keysWrap = document.createElement('div');
+      keysWrap.className = 's-kb-keys';
+
+      (kb[action.id] || []).forEach((code, i) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 's-kb-chip';
+        chip.dataset.action = action.id;
+        chip.dataset.code = code;
+        chip.innerHTML = kbDisplayName(code) + (kb[action.id].length > 1 ? '<span class="s-kb-chip-remove">✕</span>' : '');
+        chip.addEventListener('click', function(ev) {
+          if (ev.target.classList.contains('s-kb-chip-remove')) {
+            ev.stopPropagation();
+            const cur = loadKeybinds();
+            cur[action.id] = cur[action.id].filter(c => c !== code);
+            if (!cur[action.id].length) cur[action.id] = [code]; // never leave empty
+            saveKeybinds(cur);
+            renderKeybindList();
+            return;
+          }
+          startListening(chip, action.id, code);
+        });
+        keysWrap.appendChild(chip);
+      });
+
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 's-kb-chip s-kb-chip-add';
+      addBtn.textContent = '+';
+      addBtn.addEventListener('click', function() { startListening(addBtn, action.id, null); });
+      keysWrap.appendChild(addBtn);
+
+      row.appendChild(keysWrap);
+      listEl.appendChild(row);
+    });
+  }
+
+  function startListening(chip, actionId, oldCode) {
+    if (listeningChip) { listeningChip.classList.remove('listening'); }
+    window._kbListening = true;
+    chip.classList.add('listening');
+    chip.textContent = '…';
+    listeningChip = chip;
+
+    function onKey(e) {
+      e.preventDefault(); e.stopPropagation();
+      if (e.code === 'Escape') { cancel(); return; }
+      finish(e.code);
+    }
+    function onMouse(e) {
+      if (e.target === chip || chip.contains(e.target)) return; // ignore the click that opened listening
+      e.preventDefault(); e.stopPropagation();
+      finish('Mouse0');
+    }
+    function cancel() {
+      document.removeEventListener('keydown', onKey, true);
+      document.removeEventListener('mousedown', onMouse, true);
+      window._kbListening = false;
+      listeningChip = null;
+      renderKeybindList();
+    }
+    function finish(newCode) {
+      document.removeEventListener('keydown', onKey, true);
+      document.removeEventListener('mousedown', onMouse, true);
+      window._kbListening = false;
+      listeningChip = null;
+      const cur = loadKeybinds();
+      const arr = cur[actionId];
+      if (oldCode) {
+        const idx = arr.indexOf(oldCode);
+        if (idx !== -1) arr[idx] = newCode;
+      } else {
+        if (arr.indexOf(newCode) === -1) arr.push(newCode);
+      }
+      // de-dupe
+      cur[actionId] = arr.filter((c, i) => arr.indexOf(c) === i);
+      saveKeybinds(cur);
+      renderKeybindList();
+    }
+    setTimeout(() => {
+      document.addEventListener('keydown', onKey, true);
+      document.addEventListener('mousedown', onMouse, true);
+    }, 50);
+  }
+
+  document.getElementById('sv-kb-reset').addEventListener('click', function() {
+    const d = {}; KEYBIND_ACTIONS.forEach(a => d[a.id] = KEYBIND_DEFAULTS[a.id].slice());
+    saveKeybinds(d);
+    renderKeybindList();
+  });
+
+  renderKeybindList();
+  document.getElementById('pause-settings').addEventListener('click', renderKeybindList);
+})();
+
+
+/* ── SETTINGS SYSTEM ──────────────────────────────────────
+   The settings panel itself: music/SFX volume, typing speed, text size,
+   "skip seen text", and auto-advance. Reads/writes localStorage and
+   exposes the current values as window.FC_SETTINGS so other parts of the
+   engine (the typewriter, fitTextBlock, etc.) can read them. */
+(function() {
+  const SETTINGS_KEY = 'fc_settings';
+  const SPEED_LABELS = ['Crawl', 'Slow', 'Normal', 'Fast', 'Instant'];
+
+  const defaults = {
+    musicVol:  70,
+    sfxVol:    80,
+    textSpeed: 3,   // 1–5
+    textSize:  'normal', // small | normal | large
+    skipSeen:  true,
+    autoAdvance: false
+  };
+
+  function load() {
+    try { return Object.assign({}, defaults, JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')); }
+    catch(e) { return Object.assign({}, defaults); }
+  }
+  function save(s) {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  }
+
+  // Also keep legacy fc_volume in sync for any other pages that read it
+  function applyMusicVol(v) {
+    const b = document.getElementById('bgm');
+    if (b) b.volume = v / 100;
+    localStorage.setItem('fc_volume', v);
+  }
+
+  const TEXT_SIZES = { small: '0.95rem', normal: '1.1rem', large: '1.3rem' };
+  window.FC_TEXT_SIZES = TEXT_SIZES;
+  const LINE_HEIGHTS = { small: 1.78, normal: 1.7, large: 1.5 };
+  window.FC_LINE_HEIGHTS = LINE_HEIGHTS;
+  function applyTextSize(size) {
+    const targets = document.querySelectorAll('#dialogue-text');
+    targets.forEach(el => {
+      el.style.fontSize = TEXT_SIZES[size] || TEXT_SIZES.normal;
+      el.style.lineHeight = LINE_HEIGHTS[size] || LINE_HEIGHTS.normal;
+    });
+    if (typeof window.fitTextBlock === 'function') window.fitTextBlock();
+  }
+
+  // Expose speed so typeText can read it
+  window.FC_SETTINGS = load();
+  applyMusicVol(window.FC_SETTINGS.musicVol);
+  applyTextSize(window.FC_SETTINGS.textSize);
+
+  // Wire up sliders
+  function sliderBg(el, v, min, max) {
+    const pct = ((v - min) / (max - min)) * 100;
+    el.style.background = 'linear-gradient(to right, #e2505f ' + pct + '%, #2a1414 ' + pct + '%)';
+  }
+
+  const musicSlider = document.getElementById('sv-music');
+  const musicPct    = document.getElementById('sv-music-pct');
+  const sfxSlider   = document.getElementById('sv-sfx');
+  const sfxPct      = document.getElementById('sv-sfx-pct');
+  const speedSlider = document.getElementById('sv-speed');
+  const speedPct    = document.getElementById('sv-speed-pct');
+  const skipCb      = document.getElementById('sv-skip');
+  const autoCb      = document.getElementById('sv-auto');
+  const sizebtns    = document.querySelectorAll('#sv-textsize .s-seg-btn');
+
+  function refreshUI(s) {
+    musicSlider.value = s.musicVol;
+    musicPct.textContent = s.musicVol + '%';
+    sliderBg(musicSlider, s.musicVol, 0, 100);
+
+    sfxSlider.value = s.sfxVol;
+    sfxPct.textContent = s.sfxVol + '%';
+    sliderBg(sfxSlider, s.sfxVol, 0, 100);
+
+    speedSlider.value = s.textSpeed;
+    speedPct.textContent = SPEED_LABELS[s.textSpeed - 1];
+    sliderBg(speedSlider, s.textSpeed, 1, 5);
+
+    skipCb.checked = !!s.skipSeen;
+    autoCb.checked = !!s.autoAdvance;
+
+    sizebtns.forEach(b => {
+      b.classList.toggle('active', b.dataset.size === s.textSize);
+    });
+    applyTextSize(s.textSize);
+  }
+
+  function updateSetting(key, value) {
+    const s = load();
+    s[key] = value;
+    save(s);
+    window.FC_SETTINGS = s;
+  }
+
+  // Load and show saved values on panel open
+  const panel = document.getElementById('settings-panel');
+  document.getElementById('pause-settings').addEventListener('click', () => {
+    refreshUI(load());
+    panel.classList.add('open');
+  });
+  document.getElementById('settings-close').addEventListener('click', () => {
+    panel.classList.remove('open');
+  });
+  // Click backdrop of settings to close it too
+  panel.addEventListener('click', function(e) {
+    if (e.target === panel) panel.classList.remove('open');
+  });
+
+  musicSlider.addEventListener('input', function() {
+    const v = parseInt(this.value, 10);
+    musicPct.textContent = v + '%';
+    sliderBg(this, v, 0, 100);
+    applyMusicVol(v);
+    updateSetting('musicVol', v);
+  });
+
+  sfxSlider.addEventListener('input', function() {
+    const v = parseInt(this.value, 10);
+    sfxPct.textContent = v + '%';
+    sliderBg(this, v, 0, 100);
+    updateSetting('sfxVol', v);
+  });
+
+  speedSlider.addEventListener('input', function() {
+    const v = parseInt(this.value, 10);
+    speedPct.textContent = SPEED_LABELS[v - 1];
+    sliderBg(this, v, 1, 5);
+    updateSetting('textSpeed', v);
+  });
+
+  skipCb.addEventListener('change', function() { updateSetting('skipSeen', this.checked); });
+  autoCb.addEventListener('change', function() { updateSetting('autoAdvance', this.checked); });
+
+  sizebtns.forEach(b => {
+    b.addEventListener('click', function() {
+      sizebtns.forEach(x => x.classList.remove('active'));
+      this.classList.add('active');
+      const size = this.dataset.size;
+      updateSetting('textSize', size);
+      applyTextSize(size);
+    });
+  });
+
+  // Initial apply
+  refreshUI(load());
+})();
+
+
+</script>
+<script>FC_start();</script>
+</body>
+</html>

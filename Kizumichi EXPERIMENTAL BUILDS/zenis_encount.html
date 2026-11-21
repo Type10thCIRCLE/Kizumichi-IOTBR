@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Encounter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/battle.css">
+
+<!-- ═══════════════ ENCOUNTER SETUP — edit this block ═══════════════ -->
+<script>
+window.ENCOUNTER = {
+  // ── what the player sees
+  name: 'CONFRONTATION PROCEEDS',
+  subtitle: 'Do not fear the enemy, with tactical and precise movement, even the toughest encounter can be overcomed with ease.',
+  location: 'INOCETRA - Two blocks east of the facility',
+  bg: 'FC-MEDIA/street-night.webp',   // background image
+  bgm: 'FC-OST/Judgement.mp3',   // battle music
+
+  // ── who they fight (keys from ENEMY_TEMPLATES in js/battle-engine.js)
+  enemies: ['zenis_duel'],
+  isBoss: true,
+
+  // ── party + items loadout ('stage1'..'stage4', or 'kaden_solo' — see PARTY_PRESETS in the engine)
+  party: 'kaden_solo',
+
+  // ── battle start / end
+  introLog: 'Zenis Anima has entered.',   // first line in the battle log
+  nextPage: 'C4S7.html',   // where "Keep Moving" goes
+
+  // ── gimmick: null, 'chainkeeper', 'tutorial' or 'zenis_arc'  (must match the <script> line below)
+  gimmick: 'zenis_arc'
+};
+</script>
+</head>
+<body>
+
+<!-- the battle itself (markup + logic + enemies) -->
+<script src="js/battle-engine.js"></script>
+<script src="js/gimmicks/zenis_arc.js"></script>
+
+</body>
+</html>

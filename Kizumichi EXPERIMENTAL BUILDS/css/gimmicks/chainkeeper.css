@@ -1,0 +1,190 @@
+/* gimmicks/chainkeeper.css — Chain Keeper (chained state, tension gauge, rule notice, dummy panel)
+   Loaded after css/battle.css. Only the rules this gimmick adds. */
+
+/* ─── TRAINING DUMMY STATS PANEL ─────────────────── */
+.dummy-stats {
+  width: 100%;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dummy-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid rgba(74,154,186,0.12);
+  padding-bottom: 2px;
+}
+
+.dummy-label {
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  color: rgba(74,154,186,0.6);
+  font-family: var(--font-head);
+}
+
+.dummy-val {
+  font-size: 0.72rem;
+  color: #7fc8e0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.enemy-card.dummy-card {
+  min-width: 160px;
+  border-color: rgba(74,154,186,0.35);
+}
+
+.enemy-card.dummy-card::before {
+  background: linear-gradient(90deg, transparent, #4a9aba, transparent);
+}
+
+/* ─── CHAINED STATE ──────────────────────────────── */
+
+.party-panel.chained {
+  outline: 2px solid #8844cc;
+  outline-offset: -2px;
+  background: rgba(80, 20, 120, 0.18) !important;
+  animation: chain-pulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes chain-pulse {
+  from { box-shadow: inset 0 0 12px rgba(120, 50, 200, 0.3); outline-color: #6633aa; }
+  to   { box-shadow: inset 0 0 28px rgba(160, 80, 255, 0.5); outline-color: #bb66ff; }
+}
+
+.party-panel.chained::after {
+  content: '▦ CHAINED';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-head);
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  color: #bb66ff;
+  text-shadow: 0 0 10px rgba(160,80,255,0.8);
+  background: rgba(7, 9, 13, 0.82);
+  padding: 3px 8px;
+  pointer-events: none;
+  z-index: 6;
+  white-space: nowrap;
+}
+
+.log-chain   { color: #bb66ff; font-weight: 600; letter-spacing: 0.04em; }
+
+.log-chain-free { color: #88ddaa; font-weight: 600; }
+
+/* Chain Tension gauge (shown on Chain Keeper card) */
+
+.chain-tension-bar {
+  width: 100%;
+  height: 5px;
+  background: rgba(255,255,255,0.06);
+  margin-top: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.chain-tension-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7733cc, #dd66ff);
+  transition: width 0.5s ease;
+  box-shadow: 0 0 8px rgba(180,80,255,0.7);
+}
+
+.chain-tension-fill.full {
+  background: linear-gradient(90deg, #ff3388, #ff88cc);
+  box-shadow: 0 0 14px rgba(255,80,180,0.9);
+  animation: tension-crit 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes tension-crit {
+  from { box-shadow: 0 0 8px rgba(255,80,150,0.7); }
+  to   { box-shadow: 0 0 20px rgba(255,80,150,1), 0 0 40px rgba(200,40,100,0.4); }
+}
+
+.chain-tension-label {
+  font-size: 0.6rem;
+  color: #aa66dd;
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+  font-family: var(--font-head);
+}
+
+/* ─── CHAIN RULE NOTIFICATION ───────────────────────── */
+
+#chain-rule-notice {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8000;
+  background: rgba(7, 9, 13, 0.96);
+  border: 1px solid #8844cc;
+  border-top: 2px solid #bb66ff;
+  padding: 18px 28px;
+  max-width: 540px;
+  width: calc(100% - 40px);
+  text-align: center;
+  box-shadow: 0 0 40px rgba(120,50,200,0.3), 0 8px 32px rgba(0,0,0,0.8);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+#chain-rule-notice.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+#chain-rule-notice::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: 15%; right: 15%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(180,80,255,0.6), transparent);
+}
+
+.chain-notice-title {
+  font-family: var(--font-head);
+  font-size: 0.62rem;
+  letter-spacing: 0.3em;
+  color: #bb66ff;
+  margin-bottom: 10px;
+}
+
+.chain-notice-icon {
+  font-size: 1.8rem;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.chain-notice-rule {
+  font-size: 0.78rem;
+  color: var(--text);
+  line-height: 1.65;
+  margin-bottom: 14px;
+  font-style: italic;
+}
+
+.chain-notice-close {
+  background: transparent;
+  border: 1px solid rgba(180,80,255,0.5);
+  color: #bb66ff;
+  font-family: var(--font-head);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  padding: 8px 28px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.chain-notice-close:hover {
+  background: rgba(180,80,255,0.12);
+  color: #ddaaff;
+  border-color: #bb66ff;
+}

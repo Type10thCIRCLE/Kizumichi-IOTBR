@@ -1,0 +1,2194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=0.85, maximum-scale=0.85"/>
+  <title>傷道 | Inheritance of the Broken Road</title>
+
+  <style>
+/* ─── ROOT ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:          #07090d;
+  --panel:       #0e1118;
+  --panel2:      #141820;
+  --border:      #21252e;
+  --border-hi:   #2e3340;
+  --text:        #d8d0c0;
+  --text-dim:    #60584a;
+  --text-sub:    #8a8070;
+  --amber:       #d09030;
+  --amber-glow:  rgba(208,144,48,0.25);
+  --amber-hi:    #f0b848;
+  --font-head:   -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-ui:     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  --ui-surface:  rgba(7, 9, 13, 0.91);
+  --ui-surface2: rgba(10, 13, 18, 0.91);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ─── BACKGROUND LAYERS ─────────────────────────────── */
+#bg-drift {
+  position: fixed;
+  top: -5%; left: -5%;
+  width: 110%; height: 110%;
+  z-index: -2;
+  animation: bg-slow-drift 28s ease-in-out 1.8s infinite alternate;
+  will-change: transform;
+}
+#bg-base, #bg-layer {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  will-change: opacity, transform, filter;
+}
+#bg-base { opacity: 1; }
+#bg-layer { opacity: 0; }
+
+#bg-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at 50% 100%, rgba(20,12,6,0.15) 0%, transparent 65%),
+    repeating-linear-gradient(0deg,  rgba(255,255,255,0.008) 0px, rgba(255,255,255,0.008) 1px, transparent 1px, transparent 48px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.008) 0px, rgba(255,255,255,0.008) 1px, transparent 1px, transparent 48px),
+    linear-gradient(to bottom,
+      rgba(7,9,13,0.22)  0%,
+      rgba(7,9,13,0.05) 25%,
+      rgba(7,9,13,0.02) 55%,
+      rgba(7,9,13,0.10) 78%,
+      rgba(7,9,13,0.32) 100%
+    );
+  pointer-events: none;
+}
+
+@keyframes bg-slow-drift {
+  0%   { transform: scale(1.0) translate(0%, 0%); }
+  25%  { transform: scale(1.01) translate(-0.8%, -0.4%); }
+  50%  { transform: scale(1.0) translate(-0.4%, -0.8%); }
+  75%  { transform: scale(1.01) translate(0.5%, -0.5%); }
+  100% { transform: scale(1.0) translate(0.8%, 0%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* ── DESKTOP ZOOM ────────────────────────────────────── */
+/*
+  On desktop (>= 1024px), the entire game is rendered at a slightly
+  larger base font size so text, UI panels, and portraits feel more
+  deliberate on a big screen. Mobile stays completely untouched.
+  Tweak the font-size values below to taste.
+*/
+@media (min-width: 1024px) {
+  html { font-size: 1.14rem; }
+  #textbox-row { min-height: 230px; }
+}
+@media (min-width: 1440px) {
+  html { font-size: 1.22rem; }
+  #textbox-row { min-height: 248px; }
+}
+
+
+/* ─── VIGNETTE BREATHE ──────────────────────────────── */
+#bg-vignette {
+  animation: vignette-breathe 9s ease-in-out infinite alternate;
+}
+@keyframes vignette-breathe {
+  0%   { opacity: 0.5; }
+  100% { opacity: 0.65; }
+}
+
+/* ── PORTRAIT TRANSITION: smooth fade during character changes ── */
+#bg-vignette, #bg-light-sweep {
+  transition: opacity 0.55s ease;
+}
+#nvl-overlay, #text-block, #text-content, #dialogue-pane, #dialogue-text {
+  transition: opacity 0.45s ease;
+}
+body.portrait-transitioning #bg-vignette,
+body.portrait-transitioning #bg-light-sweep {
+  opacity: 0 !important;
+  animation-play-state: paused !important;
+}
+body.portrait-transitioning #nvl-overlay,
+body.portrait-transitioning #text-block,
+body.portrait-transitioning #text-content,
+body.portrait-transitioning #dialogue-pane,
+body.portrait-transitioning #dialogue-text {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+body.portrait-transitioning #click-hint,
+body.portrait-transitioning #mobile-menu-btn {
+  pointer-events: none;
+}
+
+/* ─── AMBIENT LIGHT SWEEP ───────────────────────────── */
+#bg-light-sweep {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 60% 40% at 30% 60%, rgba(208,144,48,0.04) 0%, transparent 70%);
+  animation: light-sweep 18s ease-in-out infinite alternate;
+  will-change: opacity, background;
+}
+@keyframes light-sweep {
+  0%   { opacity: 0.6; transform: translate(-5%, 3%); }
+  50%  { opacity: 1.0; transform: translate(5%, -3%); }
+  100% { opacity: 0.7; transform: translate(2%, 5%); }
+}
+
+/* ─── ATMOSPHERIC FOG + FILM GRAIN ──────────────────── */
+#bg-atmosphere {
+  position: fixed;
+  inset: -10%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 42% 30% at 20% 24%, rgba(208,144,48,0.06) 0%, transparent 78%),
+    radial-gradient(ellipse 36% 25% at 78% 68%, rgba(150,190,255,0.05) 0%, transparent 80%),
+    radial-gradient(ellipse 50% 34% at 50% 100%, rgba(18,26,40,0.42) 0%, transparent 78%);
+  filter: blur(12px) saturate(110%);
+  opacity: 0.7;
+  transform-origin: center;
+  will-change: transform, opacity;
+  animation: atmosphere-shift 24s ease-in-out infinite alternate;
+}
+
+#bg-noise {
+  position: fixed;
+  inset: -20%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.12;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,0.18) 0 0.8px, transparent 1px),
+    radial-gradient(circle at 70% 40%, rgba(255,255,255,0.12) 0 0.9px, transparent 1.1px),
+    radial-gradient(circle at 40% 80%, rgba(255,255,255,0.1) 0 0.7px, transparent 1px);
+  background-size: 14px 14px, 18px 18px, 16px 16px;
+  mix-blend-mode: soft-light;
+  will-change: transform, opacity;
+  animation: film-grain-drift 0.8s steps(2, end) infinite;
+}
+
+@keyframes atmosphere-shift {
+  0%   { transform: translate(-1.8%, -1.2%) scale(1.02); opacity: 0.58; }
+  35%  { transform: translate(1.4%, -0.5%) scale(1.04); opacity: 0.75; }
+  70%  { transform: translate(0.6%, 1.6%) scale(1.03); opacity: 0.66; }
+  100% { transform: translate(-1.1%, 1.1%) scale(1.05); opacity: 0.8; }
+}
+
+@keyframes film-grain-drift {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-1%, 1%); }
+  50%  { transform: translate(1%, -0.5%); }
+  75%  { transform: translate(-0.6%, -1%); }
+  100% { transform: translate(0.8%, 0.6%); }
+}
+
+/* ─── FADE OVERLAY ──────────────────────────────────── */
+#fade-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 9000;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.8s ease;
+}
+
+/* ─── LAYOUT — GRID ──────────────────────────────────── */
+#game-screen {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: 1fr 210px;
+  overflow: hidden;
+}
+
+#game-screen > *:not(#bg-base):not(#bg-layer):not(#bg-vignette) {
+  position: relative;
+  z-index: 2;
+}
+
+
+/* ─── CENTRE FIELD ───────────────────────────────────── */
+#scene-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ─── STANDING PORTRAIT (above dialogue, desktop only) ── */
+#standing-portrait-wrap {
+  display: none;
+}
+@media (min-width: 1024px) and (pointer: fine) {
+  #standing-portrait-wrap {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 72%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 3;
+    filter: drop-shadow(0 8px 32px rgba(0,0,0,0.72)) drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+    transition: opacity 0.35s ease;
+  }
+  #standing-portrait-wrap.hidden {
+    display: none;
+  }
+  #standing-portrait-img {
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+    object-position: bottom center;
+    display: block;
+    filter: drop-shadow(0 0 18px rgba(208,144,48,0.12));
+    animation: standing-appear 0.45s cubic-bezier(0.22,1,0.36,1) both;
+  }
+}
+
+@keyframes standing-appear {
+  from { opacity: 0; transform: translateY(18px) scale(0.988); filter: brightness(0.4); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);     filter: brightness(1); }
+}
+
+
+/* ─── TEXTBOX ROW ─────────────────────────────────────── */
+#textbox-row {
+  display: grid;
+  grid-template-columns: 1fr 160px;
+  background: var(--ui-surface);
+  border-top: 1px solid var(--border);
+  position: relative;
+  z-index: 10;
+  min-height: 210px;
+  animation: textbox-rise 0.7s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes textbox-rise {
+  from { transform: translateY(30px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+#textbox-row::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--amber) 0%, transparent 60%);
+  opacity: 0.7;
+  animation: amber-line-breathe 4s ease-in-out infinite alternate;
+}
+@keyframes amber-line-breathe {
+  0%   { opacity: 0.5; background: linear-gradient(90deg, var(--amber) 0%, transparent 55%); }
+  100% { opacity: 0.9; background: linear-gradient(90deg, var(--amber-hi) 0%, transparent 70%); }
+}
+
+/* ─── DIALOGUE PANE ──────────────────────────────────── */
+#dialogue-pane {
+  padding: 12px 20px 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-right: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ─── SPEAKER ROW ────────────────────────────────────── */
+#speaker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 22px;
+}
+#char-name { display: none !important;
+  font-family: var(--font-head);
+  font-size: clamp(0.74rem, 0.35vw + 0.65rem, 0.96rem);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--amber-hi);
+  white-space: nowrap;
+  animation: name-slide-in 0.3s ease-out both;
+}
+@keyframes name-slide-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+#speaker-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--border-hi), transparent);
+}
+
+/* ─── CONTENT ROW ────────────────────────────────────── */
+#content-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex: 1;
+}
+
+/* ─── PORTRAIT ───────────────────────────────────────── */
+/* portrait-wrap original rules removed — NVL overrides above */
+
+
+
+@keyframes portrait-appear {
+  from { opacity: 0; transform: scale(1.04); filter: brightness(0.5); }
+  to   { opacity: 1; transform: scale(1.0);  filter: brightness(1.0); }
+}
+
+/* ─── DIALOGUE TEXT ──────────────────────────────────── */
+#text-content {
+  flex: 1;
+  min-width: 0;
+  animation: text-content-appear 0.35s ease-out both;
+}
+@keyframes text-content-appear {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+#dialogue-text {
+  font-size: 22px;
+  line-height: 1.70;
+  color: #ffffff;
+  font-weight: 300;
+
+  text-shadow: 0 1px 12px rgba(0,0,0,1.0), 0 3px 18px rgba(0,0,0,0.85), -1.5px -1.5px 0 rgba(0,0,0,0.8), 1.5px -1.5px 0 rgba(0,0,0,0.8), -1.5px 1.5px 0 rgba(0,0,0,0.8), 1.5px 1.5px 0 rgba(0,0,0,0.8), -1px -1px 0 rgba(0,0,0,0.9), 1px -1px 0 rgba(0,0,0,0.9), -1px 1px 0 rgba(0,0,0,0.9), 1px 1px 0 rgba(0,0,0,0.9);
+}
+#typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 0.85em;
+  background: transparent;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 0.7s step-end infinite;
+}
+#typing-cursor.hidden { display: none; }
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ─── META PANE ──────────────────────────────────────── */
+#meta-pane {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: var(--ui-surface);
+  position: relative;
+  overflow: visible;
+}
+
+#meta-header {
+  font-family: var(--font-head);
+  font-size: clamp(0.58rem, 0.3vw + 0.50rem, 0.78rem);
+  letter-spacing: 0.1em;
+  color: var(--amber);
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ─── CONTINUE BUTTON ────────────────────────────────── */
+#click-hint {
+  display: none;
+  margin-top: auto;
+  width: 100%;
+  padding: 8px 0;
+  background: none;
+  border: none;
+  border-top: 1px solid rgba(200,169,110,0.18);
+  color: rgba(236,232,224,0.55);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 0.62rem;
+  font-style: normal;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: color 0.2s, border-color 0.2s;
+}
+#click-hint::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 1px;
+  background: rgba(200,169,110,0.6);
+  transition: width 0.25s ease;
+}
+#click-hint:hover { color: #e8d0a0; border-color: rgba(200,169,110,0.35); }
+#click-hint:hover::after { width: 60%; }
+#click-hint:active { opacity: 0.7; }
+@keyframes btn-appear {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+#click-hint.visible {
+  display: block;
+  animation: btn-appear 0.25s ease-out forwards;
+}
+
+#meta-location {
+  font-size: clamp(0.52rem, 0.25vw + 0.47rem, 0.70rem);
+  color: var(--text-sub);
+  font-style: italic;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.85;
+  transition: opacity 0.4s;
+}
+
+
+/* ─── PROGRESS DOTS ──────────────────────────────────── */
+#progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+#progress-label {
+  font-size: clamp(0.50rem, 0.22vw + 0.45rem, 0.66rem);
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+#progress-track {
+  height: 5px;
+  background: rgba(255,255,255,0.05);
+  overflow: hidden;
+  position: relative;
+}
+#progress-fill {
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  background: var(--amber);
+  transition: width 0.4s ease;
+  box-shadow: 0 0 8px var(--amber-glow);
+}
+#progress-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin-top: 4px;
+}
+.pdot {
+  width: 5px;
+  height: 5px;
+  background: var(--border-hi);
+  border-radius: 50%;
+  transition: background 0.3s;
+}
+.pdot.done    { background: var(--text-dim); }
+.pdot.current { background: var(--amber); box-shadow: 0 0 6px var(--amber-glow); }
+
+/* ─── SCENE TRANSITION — DRAMATIC WIPE ──────────────── */
+#scene-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #000;
+  opacity: 1;
+  transition: opacity 0.65s cubic-bezier(0.4, 0, 1, 1);
+}
+#scene-transition.hidden { display: none; }
+#scene-transition.fading-out { opacity: 0; pointer-events: none; }
+#scene-transition::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: #fff;
+  animation: flash-slam 0.28s ease-out 0s both;
+  pointer-events: none;
+}
+@keyframes flash-slam {
+  0%   { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+#scene-transition::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 19;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,0.18) 0px,
+    rgba(0,0,0,0.18) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  animation: scanlines-in 0.5s ease-out 0.1s both;
+  pointer-events: none;
+}
+@keyframes scanlines-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+#trans-bg {
+  position: absolute;
+  inset: -6% 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  animation: trans-bg-reveal 2.4s cubic-bezier(0.15,0,0.35,1) 0.18s both;
+  pointer-events: none;
+}
+@keyframes trans-bg-reveal {
+  0%   { opacity: 0; transform: scale(1.07); }
+  15%  { opacity: 0.45; transform: scale(1.05); }
+  75%  { opacity: 0.45; transform: scale(1.01); }
+  100% { opacity: 0; transform: scale(1.0); }
+}
+#trans-bg-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: #000;
+  clip-path: inset(0 50% 0 0);
+  animation: wipe-left 0.45s cubic-bezier(0.85,0,0.15,1) 0.22s both;
+  pointer-events: none;
+}
+@keyframes wipe-left {
+  from { clip-path: inset(0 50% 0 0); }
+  to   { clip-path: inset(0 100% 0 0); }
+}
+.trans-wipe-slash {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  z-index: 18;
+  background: linear-gradient(to bottom,
+    transparent 0%,
+    rgba(208,144,48,0.9) 30%,
+    rgba(255,200,80,1)   50%,
+    rgba(208,144,48,0.9) 70%,
+    transparent 100%
+  );
+  box-shadow: 0 0 18px 4px rgba(208,144,48,0.6);
+  animation: slash-flare 0.55s ease-out 0.22s both;
+  pointer-events: none;
+}
+@keyframes slash-flare {
+  0%   { opacity: 0; transform: translateX(-50%) scaleY(0); }
+  18%  { opacity: 1; transform: translateX(-50%) scaleY(1); }
+  55%  { opacity: 0.7; transform: translateX(-50%) scaleY(1); }
+  100% { opacity: 0; transform: translateX(-50%) scaleY(0.6); }
+}
+.trans-wipe-right {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: #000;
+  clip-path: inset(0 0 0 50%);
+  animation: wipe-right 0.45s cubic-bezier(0.85,0,0.15,1) 0.22s both;
+  pointer-events: none;
+}
+@keyframes wipe-right {
+  from { clip-path: inset(0 0 0 50%); }
+  to   { clip-path: inset(0 0 0 100%); }
+}
+.trans-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background:
+    radial-gradient(ellipse at center, transparent 35%, rgba(4,5,8,0.72) 100%),
+    linear-gradient(to bottom,
+      rgba(7,9,13,0.88) 0%,
+      rgba(7,9,13,0.50) 28%,
+      rgba(7,9,13,0.42) 50%,
+      rgba(7,9,13,0.55) 72%,
+      rgba(7,9,13,0.92) 100%
+    );
+  pointer-events: none;
+}
+.trans-observation {
+  position: relative;
+  z-index: 6;
+  font-family: var(--font-ui);
+  font-size: clamp(0.74rem, 0.35vw + 0.65rem, 0.96rem);
+  font-style: italic;
+  font-weight: 300;
+  color: rgba(216,208,192,0.72);
+  letter-spacing: 0.03em;
+  text-align: center;
+  max-width: 480px;
+  line-height: 1.85;
+  margin-bottom: 28px;
+  opacity: 0;
+  animation: prose-in 0.5s ease-out 0.55s both;
+}
+@keyframes prose-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.transition-title {
+  position: relative;
+  z-index: 6;
+  font-family: var(--font-head);
+  font-size: clamp(1.5rem, 2.5vw + 0.8rem, 2.8rem);
+  font-weight: 700;
+  letter-spacing: 0.38em;
+  color: var(--text);
+  text-align: center;
+  opacity: 0;
+  animation: heading-slam 0.35s cubic-bezier(0.1,0.7,0.3,1) 1.12s both;
+}
+.transition-title span {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: clamp(0.54rem, 0.25vw + 0.49rem, 0.72rem);
+  font-style: normal;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  color: rgba(216,208,192,0.32);
+  margin-top: 14px;
+  max-width: 440px;
+  line-height: 1.7;
+  animation: prose-in 0.35s ease-out 1.42s both;
+  opacity: 0;
+}
+@keyframes heading-slam {
+  0%   { opacity: 0; transform: scale(1.12) translateY(-6px); letter-spacing: 0.38em; }
+  60%  { opacity: 1; transform: scale(0.98) translateY(1px);  letter-spacing: 0.24em; }
+  100% { opacity: 1; transform: scale(1.0)  translateY(0);    letter-spacing: 0.26em; }
+}
+.trans-encounter-badge {
+  position: absolute;
+  top: 22px; left: 26px;
+  z-index: 6;
+  font-family: var(--font-head);
+  font-size: clamp(0.52rem, 0.25vw + 0.47rem, 0.70rem);
+  letter-spacing: 0.25em;
+  color: rgba(208,144,48,0.5);
+  opacity: 0;
+  animation: prose-in 0.3s ease-out 0.55s both;
+}
+.trans-location-badge {
+  position: absolute;
+  bottom: 22px; right: 26px;
+  z-index: 6;
+  font-family: var(--font-ui);
+  font-size: clamp(0.52rem, 0.25vw + 0.47rem, 0.70rem);
+  font-style: italic;
+  font-weight: 300;
+  color: rgba(216,208,192,0.28);
+  opacity: 0;
+  animation: prose-in 0.3s ease-out 0.88s both;
+}
+
+/* ─── SCROLLBAR ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+  
+/* ── PAUSE MENU — full-screen takeover, matches launcher.html system-screen feel ── */
+#pause-backdrop {
+  position: fixed; inset: 0; z-index: 8000;
+  background: rgba(5,6,9,0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: pm-fade-in 0.4s ease both;
+}
+@keyframes pm-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+/* soft amber glow + vignette — matches launcher #bg-vignette */
+#pause-backdrop::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 38%, rgba(200,169,110,0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 90% 70% at 50% 100%, rgba(0,0,0,0.5) 0%, transparent 60%);
+}
+/* grain texture — matches launcher html::after */
+#pause-backdrop::after {
+  content: '';
+  position: absolute; inset: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+
+/* Full-screen flex shell — matches launcher #ui */
+#pause-panel {
+  position: fixed; z-index: 8001; inset: 0;
+  width: 100%; height: 100%;
+  background: none; border: none;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-end;
+  padding: 0; overflow: hidden;
+  animation: pm-rise-in 0.4s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes pm-rise-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── HEADER / TITLE BLOCK — hidden in pause menu (center text removed) ── */
+#pause-header {
+  display: none;
+}
+#pause-eyebrow {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 0.64rem; font-weight: 500;
+  letter-spacing: 0.28em; text-transform: uppercase;
+  color: rgba(200,169,110,0.55);
+  margin-bottom: 14px;
+}
+#pause-title {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: clamp(1.8rem, 5vw, 2.8rem); font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #ece8e0;
+  line-height: 1;
+}
+/* decorative rule under title — matches launcher #logo-rule */
+#pause-title-rule {
+  margin-top: 22px;
+  width: min(220px, 40vw);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #c8a96e, transparent);
+}
+#pause-chapter-info {
+  margin-top: 18px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 0.74rem; font-style: italic;
+  color: rgba(236,232,224,0.45);
+  letter-spacing: 0.03em;
+  max-width: 90vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#pause-chapter-info b { color: #c8a96e; font-weight: 600; font-style: normal; }
+#pause-divider { display: none; }
+
+/* ── NAV BAR — bottom row, matches launcher #nav-bar / .nav-btn ── */
+#pause-nav {
+  width: 100%;
+  flex-shrink: 0;
+  padding-bottom: 5vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+/* decorative top line of nav bar — matches launcher #nav-rule */
+#pause-nav::before {
+  content: '';
+  display: block;
+  width: 100%; height: 1px;
+  background: linear-gradient(90deg, transparent 5%, rgba(200,169,110,0.4) 30%, rgba(200,169,110,0.4) 70%, transparent 95%);
+  margin-bottom: 0;
+  order: -1;
+}
+#pause-nav-buttons {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0;
+  width: 100%;
+  padding: 0;
+}
+.pause-nav-sep {
+  width: 1px;
+  background: rgba(200,169,110,0.25);
+  align-self: stretch;
+  margin: 14px 0;
+  flex-shrink: 0;
+}
+
+.pause-btn {
+  position: relative;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 6px;
+  background: none; border: none; border-left: none;
+  color: rgba(236,232,224,0.65);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: clamp(0.6rem, 1.3vw, 0.72rem); font-weight: 500;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  text-align: center;
+  padding: 20px clamp(16px, 3.4vw, 40px);
+  cursor: pointer;
+  transition: color 0.18s, background 0.18s;
+  min-width: 108px;
+}
+.pause-btn::after {
+  content: '';
+  position: absolute; bottom: 10px; left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 1px;
+  background: #c8a96e;
+  transition: width 0.25s ease;
+}
+.pause-btn:hover {
+  background: rgba(200,169,110,0.06);
+  color: #e8d0a0;
+}
+.pause-btn:hover::after { width: 60%; }
+.pause-btn-icon {
+  font-size: 1.1rem;
+  color: rgba(200,169,110,0.7);
+  flex-shrink: 0;
+  opacity: 0.8;
+  transition: color 0.18s, opacity 0.18s;
+}
+.pause-btn:hover .pause-btn-icon { color: #e8d0a0; opacity: 1; }
+
+.pause-btn-menu { color: rgba(236,232,224,0.45); }
+.pause-btn-menu:hover { color: rgba(236,232,224,0.85); }
+.pause-btn-restart { color: rgba(236,232,224,0.55); }
+
+/* ── CHAPTER SELECT — standout nav item with subtitle, still fits bottom-bar rhythm ── */
+.pause-btn-chapters {
+  gap: 6px;
+}
+.pause-chapters-label-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.pause-chapters-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  border: 1px solid rgba(200,169,110,0.4); background: #c8a96e;
+  box-shadow: 0 0 6px rgba(200,169,110,0.4);
+  transition: box-shadow 0.18s;
+}
+.pause-btn-chapters:hover .pause-chapters-dot { box-shadow: 0 0 10px rgba(200,169,110,0.65); }
+.pause-chapters-sub {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 0.6rem; font-weight: 400; font-style: italic;
+  letter-spacing: 0.02em; text-transform: none;
+  color: rgba(236,232,224,0.4);
+  max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ── Mobile: tighter spacing, smaller text ── */
+@media (max-width: 560px) {
+  .pause-btn { min-width: 0; flex: 1; padding: 14px 4px; gap: 4px; white-space: nowrap; }
+  .pause-btn-icon { font-size: 0.92rem; }
+  .pause-btn-chapters .pause-btn-icon { display: none; }
+  .pause-chapters-dot { display: none; }
+  .pause-chapters-sub { display: none; }
+  #pause-nav-buttons { flex-wrap: nowrap; }
+  #pause-title { font-size: clamp(1.4rem, 8vw, 2rem); }
+  #pause-header { padding: 2vh 18px 0; }
+  #pause-panel { padding-top: 0; }
+}
+@media (max-width: 420px) {
+  .pause-btn { font-size: 0.5rem; letter-spacing: 0.1em; padding: 12px 2px; }
+}
+
+/* ── MOBILE MENU BUTTON — matches launcher exit btn style ── */
+#mobile-menu-btn {
+  display: flex;
+  position: fixed; top: 0; right: 0; z-index: 7000;
+  background: rgba(10,8,6,0.85);
+  border: none;
+  border-left: 1px solid rgba(200,169,110,0.15);
+  border-bottom: 1px solid rgba(200,169,110,0.15);
+  color: rgba(200,169,110,0.4);
+  font-size: 0.9rem; line-height: 1;
+  width: 48px; height: 48px;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+  align-items: center; justify-content: center;
+}
+#mobile-menu-btn:hover {
+  color: rgba(200,169,110,0.85);
+  background: rgba(10,8,6,0.97);
+}
+
+
+/* ─── NVL LAYOUT ─────────────────────────────────────── */
+#game-screen { position: relative; width: 100vw; height: 100vh; overflow: hidden; display: block; }
+#scene-field { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
+#portrait-wrap {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 15;
+  overflow: visible;
+}
+
+.portrait-slot {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 78vh;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.45s ease, left 0.95s cubic-bezier(0.16, 1, 0.3, 1);
+  filter: drop-shadow(0 8px 48px rgba(0,0,0,0.82)) drop-shadow(0 2px 12px rgba(0,0,0,0.6));
+}
+.portrait-slot.active { opacity: 1; }
+
+/* Positions for 1, 2, or 3 portraits */
+#portrait-wrap[data-count="1"] .portrait-slot { left: 50%; transform: translateX(-50%); }
+
+#portrait-wrap[data-count="2"] .portrait-slot:nth-child(1) { left: 30%; transform: translateX(-50%); }
+#portrait-wrap[data-count="2"] .portrait-slot:nth-child(2) { left: 70%; transform: translateX(-50%); }
+
+#portrait-wrap[data-count="3"] .portrait-slot:nth-child(1) { left: 18%; transform: translateX(-50%); }
+#portrait-wrap[data-count="3"] .portrait-slot:nth-child(2) { left: 50%; transform: translateX(-50%); }
+#portrait-wrap[data-count="3"] .portrait-slot:nth-child(3) { left: 82%; transform: translateX(-50%); }
+
+.portrait-slot .portrait-layer {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  object-position: bottom center;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.38s ease;
+}
+.portrait-slot .portrait-layer.shown {
+  opacity: 1;
+}
+
+@keyframes portrait-appear {
+  from { opacity: 0; transform: translateY(22px) scale(0.985); filter: brightness(0.4); }
+  to   { opacity: 1; transform: translateY(0) scale(1); filter: brightness(1); }
+}
+#nvl-overlay { position: fixed; inset: 0; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: flex-start; align-items: flex-start; }
+#nvl-curtain { position: absolute; inset: 0; background: radial-gradient(ellipse 90% 80% at 50% 50%, rgba(5,7,11,0.88) 0%, rgba(5,7,11,0.55) 50%, transparent 80%); pointer-events: none; }
+#text-block { position: relative; z-index: 2; padding: clamp(16px, 3vh, 48px) clamp(16px, 4vw, 48px); width: clamp(300px, 88vw, 980px);
+  pointer-events: all; cursor: pointer; }
+#char-name { display: none !important; font-family: var(--font-head); font-size: 22px; font-weight: 700; letter-spacing: 0.14em; color: var(--amber-hi); margin-bottom: 8px; min-height: 1.4em; text-shadow: 0 0 18px var(--amber-glow), 0 1px 6px rgba(0,0,0,0.8); display: none; }
+#char-name.visible { display: block; }
+#speaker-line { display: block; height: 1px; background: linear-gradient(90deg, var(--amber), rgba(208,144,48,0.15), transparent); margin-bottom: 12px; opacity: 0; transition: opacity 0.3s; }
+#char-name.visible + #speaker-line { opacity: 1; }
+#dialogue-text { font-size: 22px; line-height: 1.78; color: #ffffff; font-weight: 300; text-shadow: 0 1px 12px rgba(0,0,0,1.0), 0 3px 18px rgba(0,0,0,0.85), -1.5px -1.5px 0 rgba(0,0,0,0.8), 1.5px -1.5px 0 rgba(0,0,0,0.8), -1.5px 1.5px 0 rgba(0,0,0,0.8), 1.5px 1.5px 0 rgba(0,0,0,0.8), -1px -1px 0 rgba(0,0,0,0.9), 1px -1px 0 rgba(0,0,0,0.9), -1px 1px 0 rgba(0,0,0,0.9), 1px 1px 0 rgba(0,0,0,0.9); min-height: 1.8em; transition: opacity 0.18s ease; } .nvl-speaker { display: none !important; font-family: var(--font-head); font-size: 0.78em; font-weight: 700; color: var(--amber-hi); letter-spacing: 0.1em; text-shadow: 0 0 12px var(--amber-glow), 0 1px 6px rgba(0,0,0,0.8); }
+
+#meta-location { font-size: clamp(0.54rem, 0.25vw + 0.49rem, 0.72rem); color: var(--text-sub); font-style: italic; letter-spacing: 0.03em; opacity: 0.8; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#progress-wrap { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+#progress-track { width: 80px; height: 3px; background: rgba(255,255,255,0.07); position: relative; overflow: hidden; }
+#progress-fill { position: absolute; top: 0; left: 0; height: 100%; background: var(--amber); transition: width 0.4s ease; box-shadow: 0 0 8px var(--amber-glow); }
+#click-hint { display: none; padding: 5px 16px; background: transparent; border: 1px solid var(--amber); color: var(--amber-hi); font-family: var(--font-head); font-size: clamp(0.60rem, 0.28vw + 0.54rem, 0.80rem); letter-spacing: 0.14em; cursor: pointer; flex-shrink: 0; transition: background 0.18s, color 0.18s, border-color 0.18s, box-shadow 0.18s; }
+#click-hint:hover { background: rgba(208,144,48,0.12); border-color: var(--amber-hi); box-shadow: 0 0 12px var(--amber-glow); color: #fff; }
+#click-hint.visible { display: block; animation: btn-appear 0.25s ease-out forwards; }
+#typing-cursor { display: inline-block; width: 2px; height: 0.88em; background: transparent; margin-left: 2px; vertical-align: text-bottom; animation: blink 0.7s step-end infinite; }
+#typing-cursor.hidden { display: none; }
+#textbox-row { display: none !important; }
+@media (min-width: 1024px) { #text-block { padding-bottom: clamp(28px, 5vh, 64px); } }
+
+#next-indicator {
+  display: inline-block;
+  color: rgba(255,255,255,0.9);
+  font-size: 22px;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
+  margin-left: 7px;
+  will-change: transform, opacity;
+}
+#next-indicator.ind-arrow {
+  animation: ind-drift 1.4s ease-in-out infinite;
+}
+#next-indicator.ind-diamond {
+  animation: ind-pulse 2.2s ease-in-out infinite;
+}
+@keyframes ind-drift {
+  0%   { transform: translateX(0);   opacity: 0.4; }
+  60%  { transform: translateX(5px); opacity: 1;   }
+  100% { transform: translateX(0);   opacity: 0.4; }
+}
+@keyframes ind-pulse {
+  0%, 100% { transform: scale(0.85); opacity: 0.35; }
+  50%       { transform: scale(1.1);  opacity: 1; }
+}
+
+/* ── CHAPTER INFO BAR — above nav buttons line ── */
+#pause-chapter-info-bar {
+  width: 100%;
+  text-align: center;
+  padding: 14px 24px 10px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 0.74rem; font-style: italic;
+  color: rgba(236,232,224,0.45);
+  letter-spacing: 0.03em;
+}
+#pause-chapter-info-bar b { color: #c8a96e; font-weight: 600; font-style: normal; }
+
+/* ── SETTINGS PANEL ─────────────────────────────────────────────────────── */
+#settings-panel {
+  display: none;
+  position: fixed; inset: 0; z-index: 8100;
+  background: rgba(5,6,9,0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  animation: pm-fade-in 0.22s ease both;
+}
+#settings-panel.open { display: flex; }
+
+#settings-box {
+  width: min(480px, 92vw);
+  padding: 0 0 5vh;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* header row */
+#settings-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 0 14px;
+  border-bottom: 1px solid rgba(200,169,110,0.22);
+  margin-bottom: 6px;
+}
+#settings-title {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 0.64rem; font-weight: 500;
+  letter-spacing: 0.28em; text-transform: uppercase;
+  color: rgba(200,169,110,0.7);
+}
+#settings-close {
+  background: none; border: none; cursor: pointer;
+  color: rgba(236,232,224,0.4);
+  font-size: 1rem; line-height: 1;
+  padding: 4px 6px;
+  transition: color 0.18s;
+}
+#settings-close:hover { color: rgba(236,232,224,0.9); }
+
+/* each row */
+.s-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  gap: 18px;
+}
+.s-row:last-child { border-bottom: none; }
+.s-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 0.64rem; font-weight: 500;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: rgba(236,232,224,0.65);
+  flex-shrink: 0;
+}
+.s-hint {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 0.6rem; font-style: italic;
+  color: rgba(236,232,224,0.3);
+  letter-spacing: 0.01em;
+  margin-top: 2px;
+}
+.s-label-col { display: flex; flex-direction: column; gap: 1px; }
+
+/* slider shared style */
+.s-slider-wrap {
+  display: flex; align-items: center; gap: 10px;
+  flex: 1; min-width: 0; justify-content: flex-end;
+}
+.s-val {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 0.58rem;
+  color: rgba(200,169,110,0.7);
+  min-width: 32px; text-align: right;
+}
+.s-slider {
+  -webkit-appearance: none; appearance: none;
+  width: 110px; height: 2px;
+  background: rgba(200,169,110,0.18);
+  border-radius: 1px; outline: none; cursor: pointer;
+  flex-shrink: 0;
+}
+.s-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: #c8a96e; border: none; cursor: pointer;
+  box-shadow: 0 0 6px rgba(200,169,110,0.35);
+}
+.s-slider::-moz-range-thumb {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: #c8a96e; border: none; cursor: pointer;
+}
+
+/* toggle switch */
+.s-toggle {
+  position: relative; width: 38px; height: 20px; flex-shrink: 0;
+}
+.s-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.s-toggle-track {
+  position: absolute; inset: 0;
+  background: rgba(200,169,110,0.15);
+  border: 1px solid rgba(200,169,110,0.25);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.s-toggle input:checked ~ .s-toggle-track {
+  background: rgba(200,169,110,0.35);
+  border-color: rgba(200,169,110,0.6);
+}
+.s-toggle-thumb {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: rgba(200,169,110,0.5);
+  transition: transform 0.2s, background 0.2s;
+  pointer-events: none;
+}
+.s-toggle input:checked ~ .s-toggle-track .s-toggle-thumb {
+  transform: translateX(18px);
+  background: #c8a96e;
+}
+
+/* text size segmented control */
+.s-seg {
+  display: flex; gap: 2px;
+}
+.s-seg-btn {
+  background: none;
+  border: 1px solid rgba(200,169,110,0.2);
+  color: rgba(236,232,224,0.4);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 0.56rem; letter-spacing: 0.12em;
+  padding: 5px 10px; cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.s-seg-btn:hover { color: rgba(236,232,224,0.75); border-color: rgba(200,169,110,0.4); }
+.s-seg-btn.active {
+  background: rgba(200,169,110,0.18);
+  border-color: rgba(200,169,110,0.6);
+  color: #c8a96e;
+}
+
+/* mobile */
+@media (max-width: 560px) {
+  #settings-box { width: 100vw; padding: 0 18px 5vh; }
+  .s-slider { width: 90px; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- BACKGROUND -->
+<div id="bg-drift">
+  <div id="bg-base"></div>
+  <div id="bg-layer"></div>
+</div>
+<div id="bg-vignette"></div>
+<div id="bg-light-sweep"></div>
+<div id="bg-atmosphere"></div>
+<div id="bg-noise"></div>
+
+<audio id="bgm" src="FC-OST/Today, and the next day.mp3" autoplay loop muted></audio>
+
+<!-- FADE -->
+<div id="fade-overlay"></div>
+
+<!-- SCENE INTRO TRANSITION -->
+<div id="scene-transition" class="hidden">
+  <div id="trans-bg"></div>
+  <div id="trans-bg-mask"></div>
+  <div class="trans-wipe-slash"></div>
+  <div class="trans-wipe-right"></div>
+  <div class="trans-vignette"></div>
+  <div class="trans-encounter-badge">KIZUMICHI</div>
+  <div class="trans-location-badge" id="trans-location"></div>
+  <div class="trans-observation" id="trans-observation"></div>
+  <div class="transition-title" id="trans-title"></div>
+</div>
+</div>
+
+<div id="nvl-overlay">
+  <div id="nvl-curtain"></div>
+  <div id="text-block">
+    <div id="char-name"></div>
+    <div id="speaker-line"></div>
+    <div id="dialogue-text"><span id="typing-cursor"></span></div>
+  </div>
+</div>
+
+<div id="game-screen">
+  <div id="scene-field">
+<!-- NVL PORTRAIT (bottom, large) — A/B crossfade layers -->
+<div id="portrait-wrap" data-count="1">
+  <div class="portrait-slot" id="portrait-slot-1">
+    <img id="portrait-img-1a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-1b" class="portrait-layer" src="" alt="" />
+  </div>
+  <div class="portrait-slot" id="portrait-slot-2">
+    <img id="portrait-img-2a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-2b" class="portrait-layer" src="" alt="" />
+  </div>
+  <div class="portrait-slot" id="portrait-slot-3">
+    <img id="portrait-img-3a" class="portrait-layer" src="" alt="" />
+    <img id="portrait-img-3b" class="portrait-layer" src="" alt="" />
+  </div>
+</div>
+
+    <!-- Standing character portrait — sits above the dialogue box (desktop only) -->
+    <div id="standing-portrait-wrap" class="hidden">
+      <img id="standing-portrait-img" src="" alt="" />
+    </div>
+    <div id="portrait-wrap">
+  <img id="portrait-img-a" class="portrait-layer" src="" alt="" />
+  <img id="portrait-img-b" class="portrait-layer" src="" alt="" />
+</div>
+  </div>
+
+  <div id="textbox-row">
+
+    <div id="dialogue-pane">
+      <div id="speaker-row">
+        <div id="char-name"></div>
+        <div id="speaker-line"></div>
+      </div>
+      <div id="content-row">
+        <div id="portrait-wrap-legacy">
+          <img id="portrait-img-legacy" src="" alt="" />
+        </div>
+        <div id="text-content">
+          <div id="dialogue-text"><span id="typing-cursor"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="meta-pane">
+      <div id="meta-header">PROGRESS</div>
+      <div id="meta-location">—</div>
+      <div id="progress-wrap">
+        <div id="progress-label">
+          <span>SCENE</span>
+        </div>
+        <div id="progress-track"><div id="progress-fill"></div></div>
+        <div id="progress-dots"></div>
+      </div>
+      <button id="click-hint">CONTINUE</button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ── PAUSE MENU ─────────────────────────────────────── -->
+<div id="pause-menu" style="display:none;">
+  <div id="pause-backdrop"></div>
+  <div id="pause-panel">
+    <!-- Settings Panel (opened from Settings nav button) -->
+    <div id="settings-panel">
+      <div id="settings-box">
+        <div id="settings-heading">
+          <span id="settings-title">⚙ Settings</span>
+          <button id="settings-close">✕</button>
+        </div>
+
+        <!-- Music Volume -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Music Volume</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-music-pct">70%</span>
+            <input type="range" class="s-slider" id="sv-music" min="0" max="100" value="70">
+          </div>
+        </div>
+
+        <!-- SFX / Ambience (future-proof, stored but no audio hook yet) -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">SFX Volume</span>
+            <span class="s-hint">Sound effects &amp; ambience</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-sfx-pct">80%</span>
+            <input type="range" class="s-slider" id="sv-sfx" min="0" max="100" value="80">
+          </div>
+        </div>
+
+        <!-- Text Speed -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Text Speed</span>
+            <span class="s-hint">Characters per second</span>
+          </div>
+          <div class="s-slider-wrap">
+            <span class="s-val" id="sv-speed-pct">Normal</span>
+            <input type="range" class="s-slider" id="sv-speed" min="1" max="5" step="1" value="3">
+          </div>
+        </div>
+
+        <!-- Text Size -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Text Size</span>
+          </div>
+          <div class="s-seg" id="sv-textsize">
+            <button class="s-seg-btn" data-size="small">S</button>
+            <button class="s-seg-btn active" data-size="normal">M</button>
+            <button class="s-seg-btn" data-size="large">L</button>
+          </div>
+        </div>
+
+        <!-- Skip Seen Text -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Skip Seen Text</span>
+            <span class="s-hint">Hold Ctrl to fast-skip already-read lines</span>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="sv-skip" checked>
+            <span class="s-toggle-track"><span class="s-toggle-thumb"></span></span>
+          </label>
+        </div>
+
+        <!-- Auto-Advance -->
+        <div class="s-row">
+          <div class="s-label-col">
+            <span class="s-label">Auto-Advance</span>
+            <span class="s-hint">Lines advance automatically after typing</span>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="sv-auto">
+            <span class="s-toggle-track"><span class="s-toggle-thumb"></span></span>
+          </label>
+        </div>
+
+      </div>
+    </div>
+    <div id="pause-header">
+      <div id="pause-eyebrow">Menu</div>
+      <div id="pause-title">Paused</div>
+      <div id="pause-title-rule"></div>
+      <div id="pause-chapter-info" id="pause-chapter-info"></div>
+    </div>
+    <div id="pause-chapter-info-bar"></div>
+    <nav id="pause-nav">
+      <div id="pause-nav-buttons">
+        <button class="pause-btn" id="pause-resume">
+          <span class="pause-btn-icon">▷</span>Resume
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-restart" id="pause-restart">
+          <span class="pause-btn-icon">↺</span>Restart Scene
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-chapters" id="pause-map">
+          <span class="pause-chapters-label-row">
+            <span class="pause-chapters-dot"></span>
+            <span class="pause-btn-icon">◎</span>Chapter Select
+          </span>
+          <span class="pause-chapters-sub" id="pause-chapters-sub">View all chapters</span>
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn pause-btn-menu" id="pause-mainmenu">
+          <span class="pause-btn-icon">←</span>Main Menu
+        </button>
+        <div class="pause-nav-sep"></div>
+        <button class="pause-btn" id="pause-settings">
+          <span class="pause-btn-icon">⚙</span>Settings
+        </button>
+      </div>
+    </nav>
+  </div>
+</div>
+
+<!-- ── MOBILE MENU BUTTON ─────────────────────────────── -->
+<button id="mobile-menu-btn" aria-label="Pause / Menu" title="Pause [Esc]">⏸</button>
+
+<script>
+/* ── SAVE HELPER ─────────────────────────────────────── */
+function saveProgress(sceneIndex) {
+  localStorage.setItem('fc_save', JSON.stringify({
+    chapter: "Part 2 - Chapter 2 - Scene 4.5 - The Anima Strike Team",
+    file: "C2S4.5.html",
+    rawFile: "C2S4.5.html",
+    scene: sceneIndex
+  }));
+}
+
+/* ── ELEMENTS ────────────────────────────────────────── */
+const bgm              = document.getElementById("bgm");
+/* ── MUSIC CROSSFADE ─────────────────────────────────── */
+let _currentMusicSrc = bgm.src;   // normalised absolute URL set by browser
+
+function changeMusic(filename) {
+  const newSrc = 'FC-OST/' + filename;
+  // bgm.src is always absolute; compare with a normalised version of newSrc
+  const abs = new URL(newSrc, location.href).href;
+  if (abs === _currentMusicSrc) return;          // already playing this track
+  _currentMusicSrc = abs;
+
+  const FADE_MS = 1200;
+  const step    = 50;
+  const startVol = bgm.volume;
+
+  // ── fade out ─────────────────────────────────────────
+  let vol = startVol;
+  const fadeOut = setInterval(() => {
+    vol = Math.max(0, vol - startVol / (FADE_MS / step));
+    bgm.volume = vol;
+    if (vol <= 0) {
+      clearInterval(fadeOut);
+      bgm.pause();
+      bgm.src  = newSrc;
+      bgm.load();
+      bgm.volume = 0;
+      bgm.play().catch(() => {});
+
+      // ── fade in ──────────────────────────────────────
+      let vi = 0;
+      const fadeIn = setInterval(() => {
+        vi = Math.min(startVol, vi + startVol / (FADE_MS / step));
+        bgm.volume = vi;
+        if (vi >= startVol) clearInterval(fadeIn);
+      }, step);
+    }
+  }, step);
+}
+
+const fadeOverlay      = document.getElementById('fade-overlay');
+const bgDrift          = document.getElementById('bg-drift');
+const bgBase           = document.getElementById("bg-base");
+const bgLayer          = document.getElementById("bg-layer");
+const charName         = document.getElementById('char-name');
+const speakerLine      = document.getElementById('speaker-line');
+const portraitWrap   = document.getElementById('portrait-wrap');
+// Per-slot state for up to 3 portraits
+const portraitSlots = [1,2,3].map(n => ({
+  slot:    document.getElementById(`portrait-slot-${n}`),
+  imgA:    document.getElementById(`portrait-img-${n}a`),
+  imgB:    document.getElementById(`portrait-img-${n}b`),
+  active:  'a',   // which layer is currently shown
+  current: '',    // current src
+}));
+const standingWrap     = document.getElementById('standing-portrait-wrap');
+const standingImg      = document.getElementById('standing-portrait-img');
+const dialogueEl       = document.getElementById('dialogue-text');
+const cursor           = document.getElementById('typing-cursor');
+const dotsEl           = document.getElementById('progress-dots');
+const progressFill     = document.getElementById('progress-fill');
+
+/* ── CROSSFADE BG ────────────────────────────────────── */
+const CROSSFADE_MS = 2000;
+let currentBgUrl = '', isFading = false, pendingBg = null;
+
+function applyBackgroundMotion(seedText) {
+  if (!seedText) return;
+  let hash = 0;
+  for (let i = 0; i < seedText.length; i++) hash = (hash * 31 + seedText.charCodeAt(i)) | 0;
+  const panX = ((hash % 9) - 4) * 0.35;
+  const panY = (((hash >> 3) % 9) - 4) * 0.28;
+  const zoom = 1.02 + ((Math.abs(hash) % 6) * 0.004);
+  const filter = 0.92 + ((Math.abs(hash >> 2) % 8) * 0.01);
+  const transformValue = `translate(${panX}%, ${panY}%) scale(${zoom.toFixed(3)})`;
+
+  bgBase.style.transform = transformValue;
+  bgLayer.style.transform = transformValue;
+  bgBase.style.filter = `brightness(${filter.toFixed(2)})`;
+  bgLayer.style.filter = `brightness(${(filter - 0.02).toFixed(2)})`;
+
+  // Re-trigger slow drift so each background has slightly different momentum.
+  bgDrift.style.animation = 'none';
+  void bgDrift.offsetWidth;
+  bgDrift.style.animation = '';
+}
+
+function setTransition(el, duration) {
+  el.style.transition = duration
+    ? `opacity ${duration}ms cubic-bezier(0.4,0,0.2,1)`
+    : 'none';
+}
+
+function changeBackground(newBg) {
+  const url = `url('FC-MEDIA/${newBg}')`;
+  if (url === currentBgUrl) return;
+  if (isFading) { pendingBg = newBg; return; }
+  _doFade(url, newBg);
+}
+
+function _doFade(url, seedText) {
+  isFading = true;
+  currentBgUrl = url;
+  setTransition(bgLayer, 0);
+  bgLayer.style.backgroundImage = url;
+  applyBackgroundMotion(seedText || url);
+  bgLayer.style.opacity = '0';
+  void bgLayer.offsetWidth;
+  setTransition(bgLayer, CROSSFADE_MS);
+  bgLayer.style.opacity = '1';
+  setTimeout(() => {
+    setTransition(bgBase, 0);
+    bgBase.style.backgroundImage = url;
+    bgBase.style.opacity = '1';
+    void bgBase.offsetWidth;
+    setTransition(bgLayer, 0);
+    bgLayer.style.opacity = '0';
+    void bgLayer.offsetWidth;
+    isFading = false;
+    if (pendingBg) { const n = pendingBg; pendingBg = null; changeBackground(n); }
+  }, CROSSFADE_MS + 50);
+}
+
+/* ── SCENES ──────────────────────────────────────────── */
+const scenes = [
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `The Anima practitioners rallied. The suppression specialist produced a focused beam aimed at Iris.`,
+  },       
+  {
+    character: 'Kaden',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `"Don't," Kaden said.`,
+  },  
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `Not a warning. An observation. He was between them and the beam before the practitioner had finished aiming, Requiem raised edge-first — the blade's Ether-active edge intercepting the focused beam and scattering it harmlessly into the building facade above.`,
+  },   
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `The Anima practitioners looked at each other. They reassessed. They withdrew.`,
+  },
+  {
+    character: 'Sophia',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `"Twelve soldiers and two practitioners," Sophia said, already taking the inventory. "We should move."`,
+  },
+  {
+    character: 'Iris',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `"Yes," Iris said. She was looking at Kaden with an expression he hadn't quite placed yet.`,
+  },            
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `"Everyone intact?" he said.`,
+  },  
+  {
+    character: 'Noah',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `"Staff's got residue from the redirect," Noah said, examining the crystal. "It'll clear in an hour. Functional."`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `"Sophia?"`,
+  },  
+  {
+    character: 'Noah',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `"The staff member's arm is still set. She'll be fine."`,
+  },  
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `"Ava."`,
+  },  
+  {
+    character: 'Ava',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `"Four disabled. Twelve relocated. Two withdrawn." A pause. "Efficient."`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `"Kurt."`,
+  },  
+  {
+    character: 'Kurt',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `"Singed my sleeve. My fault." He looked at the sleeve. "Third time this month."`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `"Do you want Sophia to—"`,
+  },  
+  {
+    character: 'Kurt',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `"It's a sleeve, Kaden."`,
+  },
+  {
+    character: 'Kaden',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `"Third time this month, Kurt."`,
+  },  
+  {
+    character: 'Kurt',
+    portrait: '',
+    portrait2: '',
+    portrait3: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `"The sleeve is fine. It's a character detail." He rolled it up. "Adds texture."`,
+  }, 
+  {
+    character: '',
+    portrait: '',
+    standingPortrait: '',
+    bg: 'kyoshin2.webp',
+    text: `They moved.`,
+  },            
+];
+
+/* ── PROGRESS ────────────────────────────────────────── */
+function buildDots() {
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < scenes.length; i++) {
+    const d = document.createElement('div');
+    d.className = 'pdot';
+    dotsEl.appendChild(d);
+  }
+}
+
+
+
+/* ── TYPEWRITER ──────────────────────────────────────── */
+const TYPING_SPEED = 14;
+let index = 0, isTyping = false, typingTimeout = null, currentFullText = '';
+let isAdvancing = false; // true from showScene() start until typeText() actually begins — blocks input + freezes vignette
+
+function getTypingDelay(ch) {
+  if (/[,.!?]/.test(ch)) return TYPING_SPEED * 3;
+  if (/[:;]/.test(ch)) return TYPING_SPEED * 2;
+  if (/\s/.test(ch)) return Math.max(8, TYPING_SPEED - 4);
+  return TYPING_SPEED;
+}
+
+
+
+
+
+
+
+/* ── CONTINUE BUTTON HANDLER ─────────────────────────── */
+
+
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#pause-menu') || e.target.closest('#mobile-menu-btn')) return;
+  advance();
+});
+
+/* ── BOOT ────────────────────────────────────────────── */
+const NEXT_FILE = "c2s5.html";
+
+const metaLocation     = document.getElementById('meta-location');
+
+function showScene(i) {
+  const scene = scenes[i];
+  isAdvancing = true;
+  updateProgress(i);
+  saveProgress(i);
+  if (scene.bg) changeBackground(scene.bg);
+  if (scene.music !== undefined) changeMusic(scene.music);
+  if (scene.sfx) {
+    const sfx = new Audio('FC-MEDIA/' + scene.sfx);
+    sfx.volume = bgm.volume > 0 ? Math.min(1, bgm.volume * 1.2) : 0.7;
+    sfx.play().catch(() => {});
+  }
+  if (scene.location) metaLocation.textContent = '\u{1F4CD} ' + scene.location;
+  if (scene.character) {
+    charName.textContent = scene.character;
+    charName.classList.add('visible');
+  } else {
+    charName.textContent = '';
+    charName.classList.remove('visible');
+  }
+  // ── Multi-portrait routing ──
+  const srcsX = [
+    scene.portrait1 || scene.portrait || scene.standingPortrait || '',
+    scene.portrait2 || '',
+    scene.portrait3 || '',
+  ];
+  portraitWrap.setAttribute('data-count', Math.max(1, srcsX.filter(s=>!!s).length));
+
+  // Track whether any portrait is actually changing this scene — if so,
+  // we delay the dialogue text so the character visibly appears first.
+  let portraitChanged = false;
+
+  srcsX.forEach((src, i) => {
+    const st = portraitSlots[i];
+    if (src) {
+      const newSrc = 'FC-CHAR/' + src;
+      if (st.current === newSrc && st.slot.classList.contains('active')) return;
+      portraitChanged = true;
+      st.current = newSrc;
+      const nxt = st.active === 'a' ? st.imgB : st.imgA;
+      const cur = st.active === 'a' ? st.imgA : st.imgB;
+      nxt.src = newSrc;
+      requestAnimationFrame(() => {
+        nxt.classList.add('shown'); cur.classList.remove('shown');
+        st.active = st.active === 'a' ? 'b' : 'a';
+        st.slot.classList.add('active');
+        portraitWrap.classList.add('active');
+      });
+    } else {
+      st.slot.classList.remove('active');
+      if (!srcsX.some(s => !!s)) portraitWrap.classList.remove('active');
+      setTimeout(() => {
+        st.imgA.classList.remove('shown'); st.imgA.src = '';
+        st.imgB.classList.remove('shown'); st.imgB.src = '';
+        st.active = 'a'; st.current = '';
+      }, 450);
+    }
+  });
+
+  if (portraitChanged) {
+    document.body.classList.add('portrait-transitioning');
+    setTimeout(() => {
+      document.body.classList.remove('portrait-transitioning');
+      isAdvancing = false;
+      typeText(scene.text);
+    }, 850);
+  } else {
+    isAdvancing = false;
+    typeText(scene.text);
+  }
+}
+
+const GROUP_SIZE = 3;
+let groupLines = [];
+
+function renderGroup(addCursor) {
+  dialogueEl.innerHTML = '';
+  groupLines.forEach((line, li) => {
+    if (li > 0) {
+      dialogueEl.appendChild(document.createElement('br'));
+      dialogueEl.appendChild(document.createElement('br'));
+    }
+    if (line.char) {
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'nvl-speaker';
+      nameSpan.textContent = line.char + ' ';
+      dialogueEl.appendChild(nameSpan);
+    }
+    const textSpan = document.createElement('span');
+    textSpan.className = 'nvl-text-line';
+    textSpan.appendChild(document.createTextNode(line.text));
+    dialogueEl.appendChild(textSpan);
+  });
+  if (addCursor) dialogueEl.appendChild(cursor);
+}
+
+function typeText(text) {
+  currentFullText = text;
+  isTyping = true;
+  cursor.classList.remove('hidden');
+  const posInGroup = index % GROUP_SIZE;
+  if (posInGroup === 0) {
+    groupLines = [];
+    dialogueEl.style.opacity = '0';
+    setTimeout(() => { dialogueEl.style.opacity = '1'; }, 80);
+  }
+  const currentChar = scenes[index] ? scenes[index].character || '' : '';
+  groupLines.push({ char: currentChar, text: '' });
+  const lineIdx = groupLines.length - 1;
+  renderGroup(true);
+  let charIndex = 0;
+  function typeNext() {
+    if (charIndex < text.length) {
+      const ch = text[charIndex++];
+      groupLines[lineIdx].text += ch;
+      renderGroup(true);
+      typingTimeout = setTimeout(typeNext, getTypingDelay(ch));
+    } else { finishTyping(); }
+  }
+  typeNext();
+}
+
+function finishTyping() {
+  if (typingTimeout) { clearTimeout(typingTimeout); typingTimeout = null; }
+  isTyping = false;
+  cursor.classList.add('hidden');
+  groupLines[groupLines.length - 1].text = currentFullText;
+  renderGroup(false);
+  // Add next indicator after last rendered line
+  // ▶ = more lines in this group; ◆ = end of group (screen will clear on next click)
+  const posInGroup = index % GROUP_SIZE;
+  const isLastInGroup = posInGroup === GROUP_SIZE - 1;
+  const isLastScene   = index === scenes.length - 1;
+  const lastTextLine = dialogueEl.querySelector('.nvl-text-line:last-of-type');
+  if (lastTextLine) {
+    const ind = document.createElement('span');
+    ind.id = 'next-indicator';
+    const isGroupEnd = isLastInGroup || isLastScene;
+    ind.textContent = isGroupEnd ? ' ◇' : ' ▷ ▷';
+    ind.className = isGroupEnd ? 'ind-diamond' : 'ind-arrow';
+    lastTextLine.appendChild(ind);
+  }
+  // Auto-advance if enabled
+  if (window.FC_SETTINGS && window.FC_SETTINGS.autoAdvance) {
+    autoAdvanceTimer = setTimeout(() => { advance(); }, 1500);
+  }
+}
+
+let autoAdvanceTimer = null;
+
+function advance() {
+  if (autoAdvanceTimer) { clearTimeout(autoAdvanceTimer); autoAdvanceTimer = null; }
+  if (isAdvancing) return; // portrait is still animating in — ignore clicks until it settles
+  const _old = document.getElementById('next-indicator'); if (_old) _old.remove();
+  if (isTyping) { finishTyping(); return; }
+  if (typingTimeout) { clearTimeout(typingTimeout); typingTimeout = null; }
+  index++;
+  if (index < scenes.length) {
+    showScene(index);
+  } else {
+    fadeOverlay.style.opacity = 1;
+    setTimeout(() => { window.location.href = NEXT_FILE; }, 800);
+  }
+}
+
+function updateProgress(i) {
+  const dots = dotsEl.querySelectorAll('.pdot');
+  dots.forEach((d, idx) => {
+    d.className = 'pdot';
+    if (idx < i)  d.classList.add('done');
+    if (idx === i) d.classList.add('current');
+  });
+  const pct = ((i + 1) / scenes.length) * 100;
+  progressFill.style.width = pct + '%';
+}
+
+buildDots();
+function getSavedScene() {
+  try {
+    const urlParam = new URLSearchParams(window.location.search).get('scene');
+    if (urlParam !== null) return Math.max(0, Math.min(parseInt(urlParam, 10), scenes.length - 1));
+  } catch(e) {}
+  return 0;
+}
+index = getSavedScene();
+showScene(index);
+
+window.addEventListener("load", () => {
+  bgm.muted = false;
+  bgm.play().catch(() => {});
+  fadeOverlay.style.opacity = 0;
+
+  // Sync standing portrait reveal with the fade-in (0.8s transition)
+  setTimeout(() => {
+    window._sceneHasLoaded = true;
+    // NVL: portrait handled by showScene
+  }, 200);
+});
+
+
+
+function reAnimateEl(el) {
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = '';
+}
+
+/* ── PAUSE MENU ─────────────────────────────────────── */
+const pauseMenu = document.getElementById('pause-menu');
+
+function openPause() {
+  pauseMenu.style.display = 'block';
+  // Show chapter info in header
+  try {
+    const save = JSON.parse(localStorage.getItem('fc_save') || '{}');
+    const info = document.getElementById('pause-chapter-info');
+    if (info && save.chapter) info.innerHTML = 'Currently: <b>' + save.chapter + '</b>';
+    const infoBar = document.getElementById('pause-chapter-info-bar');
+    if (infoBar) infoBar.innerHTML = save.chapter ? 'Currently: <b>' + save.chapter + '</b>' : '';
+    const sub = document.getElementById('pause-chapters-sub');
+    if (sub) sub.textContent = save.chapter ? save.chapter : 'View all chapters';
+  } catch(e) {}
+}
+function closePause() {
+  pauseMenu.style.display = 'none';
+}
+
+document.getElementById('pause-resume').addEventListener('click', closePause);
+
+document.getElementById('pause-map').addEventListener('click', () => {
+  fadeOverlay.style.opacity = 1;
+  setTimeout(() => { window.location.href = 'worldmap.html'; }, 800);
+});
+
+document.getElementById('pause-restart').addEventListener('click', () => {
+  closePause();
+  showScene(index);
+});
+
+document.getElementById('pause-mainmenu').addEventListener('click', () => {
+  fadeOverlay.style.opacity = 1;
+  setTimeout(() => { window.location.href = 'launcher.html'; }, 800);
+});
+
+document.getElementById('pause-backdrop').addEventListener('click', closePause);
+
+document.getElementById('mobile-menu-btn').addEventListener('click', openPause);
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    pauseMenu.style.display === 'none' ? openPause() : closePause();
+  }
+});
+
+
+/* ── SETTINGS SYSTEM ─────────────────────────────────── */
+(function() {
+  const SETTINGS_KEY = 'fc_settings';
+  const SPEED_LABELS = ['Crawl', 'Slow', 'Normal', 'Fast', 'Instant'];
+
+  const defaults = {
+    musicVol:  70,
+    sfxVol:    80,
+    textSpeed: 3,   // 1–5
+    textSize:  'normal', // small | normal | large
+    skipSeen:  true,
+    autoAdvance: false
+  };
+
+  function load() {
+    try { return Object.assign({}, defaults, JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')); }
+    catch(e) { return Object.assign({}, defaults); }
+  }
+  function save(s) {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  }
+
+  // Also keep legacy fc_volume in sync for any other pages that read it
+  function applyMusicVol(v) {
+    const b = document.getElementById('bgm');
+    if (b) b.volume = v / 100;
+    localStorage.setItem('fc_volume', v);
+  }
+
+  const TEXT_SIZES = { small: '18px', normal: '22px', large: '27px' };
+  function applyTextSize(size) {
+    const targets = document.querySelectorAll('#dialogue-text');
+    targets.forEach(el => { el.style.fontSize = TEXT_SIZES[size] || '22px'; });
+  }
+
+  // Expose speed so typeText can read it
+  window.FC_SETTINGS = load();
+  applyMusicVol(window.FC_SETTINGS.musicVol);
+  applyTextSize(window.FC_SETTINGS.textSize);
+
+  // Wire up sliders
+  function sliderBg(el, v, min, max) {
+    const pct = ((v - min) / (max - min)) * 100;
+    el.style.background = 'linear-gradient(to right, #d09030 ' + pct + '%, #2e3340 ' + pct + '%)';
+  }
+
+  const musicSlider = document.getElementById('sv-music');
+  const musicPct    = document.getElementById('sv-music-pct');
+  const sfxSlider   = document.getElementById('sv-sfx');
+  const sfxPct      = document.getElementById('sv-sfx-pct');
+  const speedSlider = document.getElementById('sv-speed');
+  const speedPct    = document.getElementById('sv-speed-pct');
+  const skipCb      = document.getElementById('sv-skip');
+  const autoCb      = document.getElementById('sv-auto');
+  const sizebtns    = document.querySelectorAll('#sv-textsize .s-seg-btn');
+
+  function refreshUI(s) {
+    musicSlider.value = s.musicVol;
+    musicPct.textContent = s.musicVol + '%';
+    sliderBg(musicSlider, s.musicVol, 0, 100);
+
+    sfxSlider.value = s.sfxVol;
+    sfxPct.textContent = s.sfxVol + '%';
+    sliderBg(sfxSlider, s.sfxVol, 0, 100);
+
+    speedSlider.value = s.textSpeed;
+    speedPct.textContent = SPEED_LABELS[s.textSpeed - 1];
+    sliderBg(speedSlider, s.textSpeed, 1, 5);
+
+    skipCb.checked = !!s.skipSeen;
+    autoCb.checked = !!s.autoAdvance;
+
+    sizebtns.forEach(b => {
+      b.classList.toggle('active', b.dataset.size === s.textSize);
+    });
+    applyTextSize(s.textSize);
+  }
+
+  function updateSetting(key, value) {
+    const s = load();
+    s[key] = value;
+    save(s);
+    window.FC_SETTINGS = s;
+  }
+
+  // Load and show saved values on panel open
+  const panel = document.getElementById('settings-panel');
+  document.getElementById('pause-settings').addEventListener('click', () => {
+    refreshUI(load());
+    panel.classList.add('open');
+  });
+  document.getElementById('settings-close').addEventListener('click', () => {
+    panel.classList.remove('open');
+  });
+  // Click backdrop of settings to close it too
+  panel.addEventListener('click', function(e) {
+    if (e.target === panel) panel.classList.remove('open');
+  });
+
+  musicSlider.addEventListener('input', function() {
+    const v = parseInt(this.value, 10);
+    musicPct.textContent = v + '%';
+    sliderBg(this, v, 0, 100);
+    applyMusicVol(v);
+    updateSetting('musicVol', v);
+  });
+
+  sfxSlider.addEventListener('input', function() {
+    const v = parseInt(this.value, 10);
+    sfxPct.textContent = v + '%';
+    sliderBg(this, v, 0, 100);
+    updateSetting('sfxVol', v);
+  });
+
+  speedSlider.addEventListener('input', function() {
+    const v = parseInt(this.value, 10);
+    speedPct.textContent = SPEED_LABELS[v - 1];
+    sliderBg(this, v, 1, 5);
+    updateSetting('textSpeed', v);
+  });
+
+  skipCb.addEventListener('change', function() { updateSetting('skipSeen', this.checked); });
+  autoCb.addEventListener('change', function() { updateSetting('autoAdvance', this.checked); });
+
+  sizebtns.forEach(b => {
+    b.addEventListener('click', function() {
+      sizebtns.forEach(x => x.classList.remove('active'));
+      this.classList.add('active');
+      const size = this.dataset.size;
+      updateSetting('textSize', size);
+      applyTextSize(size);
+    });
+  });
+
+  // Initial apply
+  refreshUI(load());
+})();
+
+</script>
+</body>
+</html>

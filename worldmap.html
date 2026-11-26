@@ -693,25 +693,25 @@ const CHAPTERS = [
     scenes:[]},
   { id:'c2s1', num:'II',   name:'The First Bridge',          location:'Kyoshin',                file:'C2.html',   type:'chapter',   eyebrow:'Chapter II',
     scenes:[
-      { name:'Chapter 2 Scene 1 - The Gate Warden', file:'c2s1.html' },
-      { name:'Chapter 2 Scene 2 - The Alley', file:'c2s2.html' },
-      { name:'Chapter 2 Scene 2.5 - The Alley (Continued)', file:'c2s2.5.html' },
-      { name:'Chapter 2 Scene 3 - The First Night', file:'c2s3.html' },
-      { name:'Chapter 2 Scene 4 - The Anima Strike Team', file:'c2s4.html' },
-      { name:'Chapter 2 Scene 4.5 - The Anima Strike Team (Continued)', file:'c2s4.5.html' },
-      { name:'Chapter 2 Scene 5 - What Kaden Called Her', file:'c2s5.html' },
-      { name:'Chapter 2 Scene 6 - Mela', file:'c2s6.html' }]},
+      { name:'Chapter 2 Scene 1 - The Gate Warden', file:'C2S1.html' },
+      { name:'Chapter 2 Scene 2 - The Alley', file:'C2S2.html' },
+      { name:'Chapter 2 Scene 2.5 - The Alley (Continued)', file:'C2S2.5.html' },
+      { name:'Chapter 2 Scene 3 - The First Night', file:'C2S3.html' },
+      { name:'Chapter 2 Scene 4 - The Anima Strike Team', file:'C2S4.html' },
+      { name:'Chapter 2 Scene 4.5 - The Anima Strike Team (Continued)', file:'C2S4.5.html' },
+      { name:'Chapter 2 Scene 5 - What Kaden Called Her', file:'C2S5.html' },
+      { name:'Chapter 2 Scene 6 - Mela', file:'C2S6.html' }]},
   { id:'int2', num:'INT',  name:'Kurt \u2014 Before the Group', location:'Interlude',           file:'INT2.html', type:'interlude', eyebrow:'Interlude',
     scenes:[]},
   { id:'c3',   num:'III',  name:'The Administrative City',   location:'Rervite',                file:'C3.html',   type:'chapter',   eyebrow:'Chapter III',
     scenes:[
       { name:'Chapter 3 Scene 1 - The Chain-Keeper', file:'C3.html' },
       { name:'Chapter 3 Scene 2 - After the Chain-Keeper', file:'C3S2.html' },
-      { name:'Chapter 3 Scene 3 - What the Road Carried', file:'c3s3.html' },
-      { name:'Chapter 3 Scene 4 - Rervite and the Archive', file:'c3s4.html' },
-      { name:'Chapter 3 Scene 5 - The Garrison Raid', file:'c3s5.html' },
-      { name:'Chapter 3 Scene 6 - What Iris Knew', file:'c3s6.html' },
-      { name:'Chapter 3 Scene 7 - Warming the Cold and An Evening in Rervite', file:'c3s7.html' }]},
+      { name:'Chapter 3 Scene 3 - What the Road Carried', file:'C3S3.html' },
+      { name:'Chapter 3 Scene 4 - Rervite and the Archive', file:'C3S4.html' },
+      { name:'Chapter 3 Scene 5 - The Garrison Raid', file:'C3S5.html' },
+      { name:'Chapter 3 Scene 6 - What Iris Knew', file:'C3S6.html' },
+      { name:'Chapter 3 Scene 7 - Warming the Cold and An Evening in Rervite', file:'C3S7.html' }]},
   { id:'int3', num:'INT',  name:'Ava \u2014 The First Lesson', location:'Interlude',            file:'INT3.html', type:'interlude', eyebrow:'Interlude',
     scenes:[]},
   { id:'c4',   num:'IV',   name:'The Research City',         location:'Inocetra',               file:'C4.html',   type:'chapter',   eyebrow:'Chapter IV',
@@ -722,7 +722,7 @@ const CHAPTERS = [
       { name:'Chapter 4 Scene 4 - Inside the Facility', file:'C4S4.html' },
       { name:'Chapter 4 Scene 5 - Three Soldiers', file:'C4S5.html' },
       { name:'Chapter 4 Scene 6 - The Shape of the Enemy', file:'C4S6.html' },
-      { name:'Chapter 4 Scene 7 - Zenis', file:'c4s7.html' }]},
+      { name:'Chapter 4 Scene 7 - Zenis', file:'C4S7.html' }]},
   { id:'c5',   num:'V',    name:'The Mountain City',         location:'Ignitia',                file:'C5.html',   type:'chapter',   eyebrow:'Chapter V',
     scenes:[]},
   { id:'c6',   num:'VI',   name:'The Transit City',          location:'Deltaris',               file:'C6.html',   type:'chapter',   eyebrow:'Chapter VI',
@@ -737,18 +737,19 @@ const CHAPTERS = [
 
 const INTERLUDE_UNLOCKS = { 'INT1.html': 'C2.html' };
 const FILE_ALIASES = {
-  'INT1.html':'INT1.html','int1.html':'INT1.html','INT2.html':'INT2.html','int2.html':'INT2.html',
-  'C1.html':'C1.html','C1S2.html':'C1.html','c1s2.html':'C1.html','C1S3.html':'C1.html','c1s3.html':'C1.html','C1S4.html':'C1.html','c1s4.html':'C1.html',
-  'c2.html':'C2.html','C2.html':'C2.html','prac_encount.html':'C2.html','c2s1.html':'C2.html','C2S1.html':'C2.html','c2s2.html':'C2.html','C2S2.html':'C2.html',
-  'c2s2.5.html':'C2.html','alley_encount.html':'C2.html','gatewarden_encount.html':'C2.html','c2s3.html':'C2.html','C2S3.html':'C2.html',
-  'c2s4.html':'C2.html','C2S4.html':'C2.html','C2S4.5.html':'C2.html','C2S5.html':'C2.html','c2s5.html':'C2.html','C2S6.html':'C2.html','c2s6.html':'C2.html',
-  'C3.html':'C3.html','C3S2.html':'C3.html','c3s2.html':'C3.html','C3S3.html':'C3.html','c3s3.html':'C3.html','C3S4.html':'C3.html','c3s4.html':'C3.html',
-  'C3S5.html':'C3.html','c3s5.html':'C3.html','C3S6.html':'C3.html','c3s6.html':'C3.html','C3S7.html':'C3.html','c3s7.html':'C3.html',
-  'C4.html':'C4.html','c4.html':'C4.html','C4S2.html':'C4.html','c4s2.html':'C4.html','ironcustodian_encount.html':'C4.html',
+  'INT1.html':'INT1.html','INT1.html':'INT1.html','INT2.html':'INT2.html','INT2.html':'INT2.html',
+  'C1.html':'C1.html','C1S2.html':'C1.html','C1S2.html':'C1.html','C1S3.html':'C1.html','C1S3.html':'C1.html','C1S4.html':'C1.html','C1S4.html':'C1.html',
+  'C2.html':'C2.html','C2.html':'C2.html','prac_encount.html':'C2.html','C2S1.html':'C2.html','C2S1.html':'C2.html','C2S2.html':'C2.html','C2S2.html':'C2.html',
+  'C2S2.5.html':'C2.html','alley_encount.html':'C2.html','gatewarden_encount.html':'C2.html','C2S3.html':'C2.html','C2S3.html':'C2.html',
+  'C2S4.html':'C2.html','C2S4.html':'C2.html','C2S4.5.html':'C2.html','C2S5.html':'C2.html','C2S5.html':'C2.html','C2S6.html':'C2.html','C2S6.html':'C2.html',
+  'C3.html':'C3.html','C3S2.html':'C3.html','C3S2.html':'C3.html','C3S3.html':'C3.html','C3S3.html':'C3.html','C3S4.html':'C3.html','C3S4.html':'C3.html',
+  'C3S5.html':'C3.html','C3S5.html':'C3.html','C3S6.html':'C3.html','C3S6.html':'C3.html','C3S7.html':'C3.html','C3S7.html':'C3.html',
+  'C4.html':'C4.html','C4.html':'C4.html','C4S2.html':'C4.html','C4S2.html':'C4.html','ironcustodian_encount.html':'C4.html',
 };
 
 function resolveFile(f) {
   if (!f) return f;
+  f = String(f).replace(/(^|\/)((?:c\d+(?:s\d+(?:[._]\d+)?)?)|int\d)(\.html)/i, (m, a, b, c) => a + b.toUpperCase() + c);
   const direct = FILE_ALIASES[f] || FILE_ALIASES[f.toLowerCase()] || FILE_ALIASES[f.charAt(0).toUpperCase()+f.slice(1)];
   if (direct) return direct;
   // Generic fallback: any file starting with "C<number>" (e.g. C4S2.html, C5S3.html)
@@ -925,7 +926,9 @@ function closeScenePicker(){document.getElementById('scene-picker-overlay').clas
 document.getElementById('scene-picker-close').addEventListener('click',closeScenePicker);
 document.getElementById('scene-picker-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('scene-picker-overlay'))closeScenePicker();});
 
+const fcNormFile = h => String(h == null ? h : h).replace(/(^|\/)((?:c\d+(?:s\d+(?:[._]\d+)?)?)|int\d)(\.html)/i, (m, a, b, c) => a + b.toUpperCase() + c);
 function launchTo(href){
+  href=fcNormFile(href);
   const fade=document.getElementById('fadeOverlay');
   fade.style.transition='opacity 0.85s ease'; fade.style.opacity='1'; fade.style.pointerEvents='all';
   const music=document.getElementById('map-music');

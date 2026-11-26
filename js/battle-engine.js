@@ -4464,7 +4464,7 @@ function endBattle(won, fled = false) {
           </div>`;
 
         btn.textContent = '→ Keep Moving';
-        btn.onclick = () => { exitTo('PROCEEDING', () => { window.location.href = 'c3s5.html'; }); };
+        btn.onclick = () => { exitTo('PROCEEDING', () => { window.location.href = 'C3S5.html'; }); };
     } else {
       el('battle-screen').classList.add('hidden');
       el('result-screen').classList.remove('hidden');
@@ -5214,7 +5214,7 @@ function endBattle(won, fled = false) {
           </div>`;
 
         btn.textContent = '→ Keep Moving';
-        btn.onclick = () => { exitTo('PROCEEDING', () => { window.location.href = BATTLE.nextPage || 'c3s5.html'; }); };
+        btn.onclick = () => { exitTo('PROCEEDING', () => { window.location.href = BATTLE.nextPage || 'C3S5.html'; }); };
     } else {
       el('battle-screen').classList.add('hidden');
       el('result-screen').classList.remove('hidden');

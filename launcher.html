@@ -934,7 +934,9 @@ html { font-size: 16px; }
   }
 
   /* ── Launch ─────────────────────────────────────────── */
+  const fcNormFile = h => String(h == null ? h : h).replace(/(^|\/)((?:c\d+(?:s\d+(?:[._]\d+)?)?)|int\d)(\.html)/i, (m, a, b, c) => a + b.toUpperCase() + c);
   function launchTo(href) {
+    href = fcNormFile(href);
     flashOverlay.classList.add('flash');
     fadeOutAudio(menuAudio, 1000);
     startSound.currentTime = 0;
@@ -959,9 +961,9 @@ html { font-size: 16px; }
       // The save already has file: pointing to the correct next scene.
       try {
         const save = JSON.parse(localStorage.getItem('fc_save') || '{}');
-        launchTo(save.file || 'c2s1.html');
+        launchTo(save.file || 'C2S1.html');
       } catch(e) {
-        launchTo('c2s1.html');
+        launchTo('C2S1.html');
       }
     } else {
       // Genuine new game: clear save and start from the beginning.

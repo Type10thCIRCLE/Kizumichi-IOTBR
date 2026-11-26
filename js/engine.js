@@ -16,7 +16,7 @@
           chapter:  "Part 1 - Chapter 1 - Scene 1 - Kaden", // shown in pause menu / save
           file:     "C1.html",       // this page's own filename
           rawFile:  "C1.html",       // (optional, defaults to `file`)
-          nextFile: "c1s2.html",     // where "advance past the last line" goes
+          nextFile: "C1S2.html",     // where "advance past the last line" goes
           endCard:  false,           // true = play the title-card outro instead of a plain cut (needs #end-card in the page)
           scenes:   [ ... ]          // the scene array — unchanged from before
         };
@@ -90,22 +90,23 @@ const NEXT_FILE = FC.nextFile;
    file, add it here (js/battle-engine.js also bounces any encounter
    page on its own as a safety net). */
 const FC_ENCOUNTER_NEXT = {
-  'prac_encount.html':        'c2s1.html',
-  'gatewarden_encount.html':  'c2s2.html',
-  'alley_encount.html':       'c2s2.5.html',
-  'ast_encount.html':         'c2s4.5.html',
+  'prac_encount.html':        'C2S1.html',
+  'gatewarden_encount.html':  'C2S2.html',
+  'alley_encount.html':       'C2S2.5.html',
+  'ast_encount.html':         'C2S4.5.html',
   'chainkeeper_encount.html': 'C3S2.html',
-  'agr_encount.html':         'c3s5.html',
+  'agr_encount.html':         'C3S5.html',
   'ironcustodian_encount.html': 'C4S2.html',
   'als_encount.html':         'C4S6.html',
-  'zenis_encount.html':       'c4s7.html'
+  'zenis_encount.html':       'C4S7.html'
 };
 function fcResolveNext(file) {
+  file = String(file == null ? '' : file).replace(/(^|\/)((?:c\d+(?:s\d+(?:[._]\d+)?)?)|int\d)(\.html)/i, (m, a, b, c) => a + b.toUpperCase() + c);
   try {
     const s = JSON.parse(localStorage.getItem('fc_settings') || '{}');
     if (s.skipEncounters) {
-      const hit = FC_ENCOUNTER_NEXT[String(file || '').toLowerCase()];
-      if (hit) return hit;
+      const k = String(file || '').toLowerCase();
+      for (const key in FC_ENCOUNTER_NEXT) { if (key.toLowerCase() === k) return FC_ENCOUNTER_NEXT[key]; }
     }
   } catch (e) {}
   return file;

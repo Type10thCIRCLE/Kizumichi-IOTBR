@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>傷道 | Inheritance of the Broken Road</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --accent:    #e2505f;
+            --accent-lt: #ffb0b6;
+            --off-white: #f7eeee;
+            --bg:        #110909;
+            --font:      -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+        }
+
+        html { font-size: 16px; }
+        @media (max-width: 480px) { html { font-size: 14px; } }
+        @media (min-width: 1440px) { html { font-size: 18px; } }
+
+        body {
+            height: 100vh;
+            height: 100dvh;
+            background: var(--bg);
+            color: var(--off-white);
+            font-family: var(--font);
+            overflow: hidden;
+        }
+
+        #startScreen {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            opacity: 0;
+            animation: fadeIn 1.5s 0.3s ease forwards;
+        }
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        #logo-img {
+            width: min(860px, 92vw);
+            max-height: 48vh;
+            object-fit: contain;
+            transition: opacity 0.8s ease;
+        }
+
+        .credits {
+            font-size: 0.75rem;
+            letter-spacing: 0.12em;
+            color: rgba(247, 238, 238, 0.5);
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        button {
+            font-family: var(--font);
+            cursor: pointer;
+            background: transparent;
+            text-transform: uppercase;
+            transition: background 0.2s, border-color 0.2s, color 0.2s;
+        }
+
+        #startBtn {
+            border: 1px solid var(--accent);
+            color: var(--accent-lt);
+            font-size: 0.9rem;
+            letter-spacing: 0.25em;
+            padding: 0.9rem 3rem;
+            border-radius: 2px;
+        }
+        #startBtn:hover { background: rgba(226, 80, 95, 0.1); border-color: var(--accent-lt); color: #fff; }
+
+        #fullscreenBtn {
+            border: none;
+            color: rgba(247, 238, 238, 0.5);
+            font-size: 0.7rem;
+            letter-spacing: 0.18em;
+            padding: 0.4rem 0.8rem;
+        }
+        #fullscreenBtn:hover { color: var(--off-white); }
+
+        .notices {
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.7rem;
+            line-height: 1.7;
+            color: rgba(247, 238, 238, 0.45);
+        }
+
+        #startScreen.leaving .credits,
+        #startScreen.leaving .actions,
+        #startScreen.leaving .notices { opacity: 0; transition: opacity 0.5s ease; }
+        #startScreen.leaving.logo-fade #logo-img { opacity: 0; }
+        #startScreen.leaving { pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <main id="startScreen">
+        <img id="logo-img" src="FC-MEDIA/logo.png" alt="Kizumichi" draggable="false">
+
+        <p class="credits">TeamWyvern &amp; Studio Caliper &nbsp;·&nbsp; Written by PenWorks &nbsp;·&nbsp; Music by MonoLogic</p>
+
+        <div class="actions">
+            <button id="startBtn" onclick="startGame()">Click to Start</button>
+            <button id="fullscreenBtn" onclick="toggleFullscreen()">Enter Full Screen</button>
+        </div>
+
+        <div class="notices">
+            <p>Progress is saved automatically when you leave a scene or close the window.</p>
+            <p>Kizumichi is a work of fiction. Any resemblance to real persons or events is coincidental.</p>
+        </div>
+    </main>
+
+    <script>
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => console.warn('Fullscreen failed:', err));
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            document.getElementById('fullscreenBtn').textContent =
+                document.fullscreenElement ? 'Exit Full Screen' : 'Enter Full Screen';
+        });
+
+        function startGame() {
+            const screen = document.getElementById('startScreen');
+            if (screen.classList.contains('leaving')) return;
+            screen.classList.add('leaving');
+            setTimeout(() => screen.classList.add('logo-fade'), 600);
+            setTimeout(redirectToLauncher, 1500);
+        }
+
+        // Returning players (existing fc_save) go to the launcher; new players go straight into the story.
+        function redirectToLauncher() {
+            let hasSave = false;
+            try { hasSave = !!localStorage.getItem('fc_save'); } catch (e) {}
+            window.location.href = hasSave ? 'launcher.html' : 'C1.html';
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key.toLowerCase() === 's') startGame();
+        });
+    </script>
+
+</body>
+</html>

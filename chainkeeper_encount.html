@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Encounter</title>
+<link rel="stylesheet" href="css/battle.css">
+<link rel="stylesheet" href="css/gimmicks/chainkeeper.css">
+
+<!-- ═══════════════ ENCOUNTER SETUP — edit this block ═══════════════ -->
+<script>
+window.ENCOUNTER = {
+  // ── what the player sees
+  name: 'CHAINS DESCEND',
+  subtitle: 'The Chain Keeper does not wish to kill — only to bind. Break every chain before the tension breaks you.',
+  location: 'The Warden\'s Bridge',
+  bg: 'FC-MEDIA/mountain.webp',   // background image
+  bgm: 'FC-OST/The Chain-Keeper.mp3',   // battle music
+
+  // ── who they fight (keys from ENEMY_TEMPLATES in js/battle-engine.js)
+  enemies: ['chain_keeper'],
+  isBoss: true,
+
+  // ── party + items loadout ('stage1'..'stage4', see PARTY_PRESETS in the engine)
+  party: 'stage3',
+
+  // ── battle start / end
+  introLog: 'The Chain Keeper has appeared. Destroy its chains to free your allies.',   // first line in the battle log
+  nextPage: 'C3S2.html',   // where "Keep Moving" goes
+
+  // ── gimmick: null, 'chainkeeper' or 'tutorial'  (must match the <script> line below)
+  gimmick: 'chainkeeper'
+};
+</script>
+</head>
+<body>
+
+<!-- the battle itself (markup + logic + enemies) -->
+<script src="js/battle-engine.js"></script>
+<!-- gimmick for this encounter — remove this line (and set gimmick: null) for a normal fight -->
+<script src="js/gimmicks/chainkeeper.js"></script>
+
+</body>
+</html>

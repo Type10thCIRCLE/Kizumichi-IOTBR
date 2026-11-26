@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Encounter</title>
+<link rel="stylesheet" href="css/battle.css">
+
+<!-- ═══════════════ ENCOUNTER SETUP — edit this block ═══════════════ -->
+<script>
+window.ENCOUNTER = {
+  // ── what the player sees
+  name: 'CONFRONTATION PROCEEDS',
+  subtitle: 'Do not fear the enemy, with tactical and precise movement, even the toughest encounter can be overcomed with ease.',
+  location: 'KYOSHIN - The Anima Strike Team',
+  bg: 'FC-MEDIA/kyoshin2.webp',   // background image
+  bgm: 'FC-OST/Animosity.mp3',   // battle music
+
+  // ── who they fight (keys from ENEMY_TEMPLATES in js/battle-engine.js)
+  enemies: ['bl_pract', 'anima_soldier', 'anima_army_leader', 'bl_pract', 'anima_soldier'],
+  isBoss: false,
+
+  // ── party + items loadout ('stage1'..'stage4', see PARTY_PRESETS in the engine)
+  party: 'stage3',
+
+  // ── battle start / end
+  introLog: 'Encountered ANIMA ARMY troops.',   // first line in the battle log
+  nextPage: 'c2s4.5.html',   // where "Keep Moving" goes
+
+  // ── gimmick: null, 'chainkeeper' or 'tutorial'  (must match the <script> line below)
+  gimmick: null
+};
+</script>
+</head>
+<body>
+
+<!-- the battle itself (markup + logic + enemies) -->
+<script src="js/battle-engine.js"></script>
+
+</body>
+</html>

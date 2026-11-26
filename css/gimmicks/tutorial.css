@@ -1,0 +1,196 @@
+/* gimmicks/tutorial.css — Tutorial overlay, locked buttons, boss intro
+   Loaded after css/battle.css. Only the rules this gimmick adds. */
+
+#tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 8000;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12px;
+}
+
+#tutorial-box {
+  pointer-events: auto;
+  background: rgba(7, 9, 13, 0.96);
+  border: 1px solid var(--amber);
+  box-shadow: 0 4px 0 var(--amber), 0 0 32px rgba(226,80,95,0.18);
+  max-width: 560px;
+  width: calc(100% - 32px);
+  padding: 14px 18px 12px;
+  position: relative;
+  animation: tut-in 0.4s cubic-bezier(0.2, 0, 0.3, 1) both;
+}
+
+@keyframes tut-in {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#tutorial-box.tut-exit {
+  animation: tut-out 0.3s cubic-bezier(0.5, 0, 1, 1) both;
+}
+
+@keyframes tut-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-10px); }
+}
+
+.tut-label {
+  font-family: var(--font-head);
+  font-size: 0.58rem;
+  letter-spacing: 0.28em;
+  color: var(--amber);
+  margin-bottom: 6px;
+}
+
+.tut-text {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.tut-text strong { color: var(--amber-hi); font-weight: 400; }
+
+.tut-highlight {
+  background: rgba(226,80,95,0.08);
+  border-left: 2px solid var(--amber);
+  padding: 6px 10px;
+  font-size: 0.76rem;
+  color: var(--text-sub);
+  font-style: italic;
+  margin-bottom: 10px;
+}
+
+#tut-btn {
+  background: transparent;
+  border: 1px solid var(--amber);
+  color: var(--amber-hi);
+  font-family: var(--font-head);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  padding: 7px 20px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  float: right;
+}
+
+#tut-btn:hover { background: var(--amber); color: var(--bg); }
+
+.tut-step-count {
+  font-size: 0.62rem;
+  color: var(--text-dim);
+  position: absolute;
+  top: 10px;
+  right: 14px;
+}
+
+/* Tutorial-locked action buttons */
+
+.action-btn.tut-locked {
+  opacity: 0.28;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.action-btn.tut-locked:hover {
+  background: transparent;
+  border-color: var(--border-hi);
+  color: var(--text-dim);
+}
+
+/* Phase label shown at top during tutorial */
+
+#tut-phase-banner {
+  position: fixed;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 7000;
+  pointer-events: none;
+  font-family: var(--font-head);
+  font-size: 0.65rem;
+  letter-spacing: 0.22em;
+  color: var(--amber);
+  background: rgba(7,9,13,0.85);
+  border: 1px solid var(--border-hi);
+  padding: 4px 14px;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+#tut-phase-banner.visible { opacity: 1; }
+
+/* Infinite HP indicator on enemy */
+
+.enemy-hp-infinite {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  font-style: italic;
+  letter-spacing: 0.06em;
+  text-align: center;
+  margin-top: 2px;
+}
+
+/* Boss intro cinematic */
+
+#tut-boss-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 8500;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s;
+}
+
+#tut-boss-intro.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#tut-boss-intro .bi-label {
+  font-family: var(--font-head);
+  font-size: 0.58rem;
+  letter-spacing: 0.32em;
+  color: rgba(180,70,30,0.6);
+  margin-bottom: 14px;
+  animation: fade-rise 0.5s ease-out 0.6s both;
+}
+
+#tut-boss-intro .bi-title {
+  font-family: var(--font-head);
+  font-size: 3.4rem;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  color: #e84020;
+  text-shadow: 0 0 40px rgba(220,60,20,0.5), 0 2px 0 #000;
+  animation: fade-rise 0.45s cubic-bezier(0.1,0.7,0.3,1) 0.9s both;
+  text-align: center;
+}
+
+#tut-boss-intro .bi-sub {
+  font-size: 0.78rem;
+  font-style: italic;
+  color: rgba(216,208,192,0.5);
+  margin-top: 10px;
+  letter-spacing: 0.06em;
+  animation: fade-rise 0.45s ease-out 1.2s both;
+}
+
+#tut-boss-intro .bi-rule {
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #c03020, transparent);
+  margin: 18px 0 0;
+  animation: rule-expand 0.6s ease-out 1.0s both;
+}
+h1,h2,h3,h4,h5,h6,b,strong,th{font-weight:400}

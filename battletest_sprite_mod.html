@@ -1,0 +1,4962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>傷道 | Inheritance of the Broken Road</title>
+<style>
+/* ─── ROOT ──────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:          #07090d;
+  --panel:       #0e1118;
+  --panel2:      #141820;
+  --border:      #21252e;
+  --border-hi:   #2e3340;
+  --text:        #d8d0c0;
+  --text-dim:    #60584a;
+  --text-sub:    #8a8070;
+  --amber:       #d09030;
+  --amber-glow:  rgba(208,144,48,0.25);
+  --amber-hi:    #f0b848;
+  --hp-hi:       #3ab870;
+  --hp-mid:      #c8a030;
+  --hp-lo:       #c83030;
+  --mp-col:      #4878d4;
+  --atb-col:     #d09030;
+  --dodge-col:   #60c8c0;
+  --font-head:   -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-ui:     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  /* UI surfaces: slightly darker than --panel, very slight transparency */
+  --ui-surface:  rgba(7, 9, 13, 0.91);
+  --ui-surface2: rgba(10, 13, 18, 0.91);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ─── SCREENS ───────────────────────────────────── */
+.screen { position: absolute; inset: 0; display: flex; flex-direction: column; }
+.hidden { display: none !important; }
+
+/* ─── BATTLE SCREEN ─────────────────────────────── */
+#battle-screen {
+  display: grid;
+  grid-template-rows: 48px 1fr 96px 240px;
+  height: 100dvh;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--bg);
+}
+
+/* Vignette/gradient overlay — lightened so the bg image shows through */
+#battle-screen::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  z-index: 1;
+  background:
+    radial-gradient(ellipse at 50% 100%, rgba(20,12,6,0.45) 0%, transparent 65%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.008) 0px, rgba(255,255,255,0.008) 1px, transparent 1px, transparent 48px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.008) 0px, rgba(255,255,255,0.008) 1px, transparent 1px, transparent 48px),
+    linear-gradient(to bottom,
+      rgba(7,9,13,0.70)  0%,
+      rgba(7,9,13,0.22) 25%,
+      rgba(7,9,13,0.08) 55%,
+      rgba(7,9,13,0.20) 78%,
+      rgba(7,9,13,0.55) 100%
+    );
+  pointer-events: none;
+}
+
+/* ─── DEDICATED BATTLE BACKGROUND DIV ───────────── */
+/* Sits behind everything, fully independent — can be animated freely */
+#battle-bg {
+  display: block !important;
+  position: absolute;
+  inset: -8% -4%;          /* oversized so the slow-pan has room */
+  z-index: 0;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  filter: blur(6px);
+  /* Entrance: fade in from dark while gently zooming out */
+  animation: bg-entrance 1.8s cubic-bezier(0.2, 0, 0.5, 1) 0s both,
+             bg-slow-drift 28s ease-in-out 1.8s infinite alternate;
+}
+@keyframes bg-entrance {
+  0%   { opacity: 0;    transform: scale(1.12); }
+  100% { opacity: 1;    transform: scale(1.0);  }
+}
+/* Continuous slow parallax drift — barely perceptible, atmospheric */
+@keyframes bg-slow-drift {
+  0%   { transform: scale(1.04) translate(0%,    0%);   }
+  25%  { transform: scale(1.05) translate(-0.8%, -0.4%); }
+  50%  { transform: scale(1.04) translate(-0.4%, -0.8%); }
+  75%  { transform: scale(1.05) translate( 0.5%, -0.5%); }
+  100% { transform: scale(1.04) translate( 0.8%,  0%);   }
+}
+
+/* Make sure all grid children sit above the bg div and overlay */
+#battle-screen > *:not(#battle-bg):not(#vfx-canvas) { position: relative; z-index: 2; }
+
+/* ─── BATTLE HEADER ─────────────────────────────── */
+#battle-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+  background: var(--ui-surface);
+}
+#battle-name-display {
+  font-family: var(--font-head);
+  font-size: 0.95rem;
+  color: var(--amber-hi);
+  letter-spacing: 0.08em;
+}
+#battle-status {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-style: italic;
+  flex: 1;
+}
+#turn-counter {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+}
+#btn-mute {
+  background: none;
+  border: 1px solid var(--border-hi);
+  color: var(--text-sub);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 2px 7px;
+  border-radius: 3px;
+  line-height: 1.4;
+  transition: border-color 0.15s, color 0.15s;
+}
+#btn-mute:hover { border-color: var(--amber); color: var(--amber-hi); }
+
+/* ─── ENEMY FIELD ───────────────────────────────── */
+#enemy-field {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  z-index: 3;
+  isolation: isolate;
+}
+#enemy-container {
+  display: flex;
+  gap: 32px;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.enemy-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 20px 14px;
+  background: var(--ui-surface);
+  border: 1px solid var(--border);
+  min-width: 140px;
+  position: relative;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  animation: enemy-enter 0.5s ease-out backwards;
+}
+.enemy-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 10%; right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--enemy-color, var(--amber)), transparent);
+}
+.enemy-card.boss { min-width: 200px; }
+.enemy-card.boss .enemy-symbol { font-size: 3.2rem; }
+.enemy-card.dead {
+  opacity: 0.25;
+  filter: grayscale(1);
+  pointer-events: none;
+}
+.enemy-card.targetable {
+  cursor: crosshair;
+  border-color: var(--enemy-color, var(--amber));
+  box-shadow: 0 0 16px var(--enemy-color, var(--amber-glow));
+  animation: pulse-targetable 1s ease-in-out infinite alternate;
+}
+@keyframes pulse-targetable {
+  from { box-shadow: 0 0 8px var(--enemy-color, var(--amber)); }
+  to   { box-shadow: 0 0 24px var(--enemy-color, var(--amber)), 0 0 48px rgba(208,144,48,0.15); }
+}
+@keyframes enemy-enter {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.enemy-symbol-wrap { position: relative; }
+.enemy-symbol {
+  font-size: 2.4rem;
+  line-height: 1;
+  color: var(--enemy-color, var(--text));
+  text-shadow: 0 0 20px var(--enemy-color, transparent);
+  transition: transform 0.2s;
+}
+.enemy-card.targetable:hover .enemy-symbol { transform: scale(1.15); }
+.enemy-name {
+  font-family: var(--font-head);
+  font-size: 0.82rem;
+  color: var(--text);
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+.enemy-subtitle {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  font-style: italic;
+  text-align: center;
+}
+/* ── Enemy HP bar — thorny dark vines ── */
+.enemy-hp-bar {
+  width: 100%;
+  height: 12px;
+  background: transparent;
+  margin-top: 4px;
+  overflow: visible;
+  position: relative;
+}
+/* track */
+.enemy-hp-bar::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  top: 3px; height: 5px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.04);
+}
+/* thorny vine along the top — darker, more angular */
+.enemy-hp-bar::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  top: -1px;
+  height: 9px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='9'%3E%3Cpath d='M0 6 L5 3 L10 7 L15 2 L20 6 L25 3 L30 7 L36 4' stroke='%23803020a0' stroke-width='1.1' fill='none' stroke-linejoin='round' stroke-linecap='round'/%3E%3Cpath d='M5 3 L3 1' stroke='%23903828b0' stroke-width='0.9' fill='none'/%3E%3Cpath d='M15 2 L13 0' stroke='%23903828b0' stroke-width='0.9' fill='none'/%3E%3Cpath d='M25 3 L27 1' stroke='%23903828b0' stroke-width='0.9' fill='none'/%3E%3Cpath d='M10 7 L12 9' stroke='%23702818a0' stroke-width='0.8' fill='none'/%3E%3Cpath d='M20 6 L18 8' stroke='%23702818a0' stroke-width='0.8' fill='none'/%3E%3Ccircle cx='5' cy='3' r='0.8' fill='%23a03830c0'/%3E%3Ccircle cx='15' cy='2' r='0.8' fill='%23a03830c0'/%3E%3Ccircle cx='25' cy='3' r='0.8' fill='%23a03830c0'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 36px 9px;
+  pointer-events: none;
+  animation: thorn-sway 7s ease-in-out infinite alternate;
+  z-index: 2;
+}
+.enemy-hp-fill {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  height: 5px;
+  background: var(--hp-hi);
+  transition: width 0.4s ease, background 0.4s;
+  z-index: 1;
+}
+/* thorny vine along the bottom of the fill */
+.enemy-hp-fill::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  bottom: -3px;
+  height: 8px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='8'%3E%3Cpath d='M0 3 L6 6 L12 2 L18 6 L24 3 L30 6 L36 3' stroke='%23703020a0' stroke-width='1' fill='none' stroke-linejoin='round' stroke-linecap='round'/%3E%3Cpath d='M6 6 L4 8' stroke='%23903828a0' stroke-width='0.8' fill='none'/%3E%3Cpath d='M18 6 L20 8' stroke='%23903828a0' stroke-width='0.8' fill='none'/%3E%3Cpath d='M12 2 L10 0' stroke='%23803020a0' stroke-width='0.8' fill='none'/%3E%3Ccircle cx='6' cy='6' r='0.7' fill='%23a03030b0'/%3E%3Ccircle cx='18' cy='6' r='0.7' fill='%23a03030b0'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 36px 8px;
+  pointer-events: none;
+  animation: thorn-sway-bot 8s ease-in-out infinite alternate-reverse;
+  z-index: 2;
+}
+@keyframes thorn-sway {
+  from { background-position: 0 0; }
+  to   { background-position: -8px 0; }
+}
+@keyframes thorn-sway-bot {
+  from { background-position: 0 0; }
+  to   { background-position: 7px 0; }
+}
+.enemy-hp-text {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.enemy-atb-bar {
+  width: 100%;
+  height: 3px;
+  background: rgba(255,255,255,0.06);
+  margin-top: 5px;
+  overflow: hidden;
+}
+.enemy-atb-fill {
+  height: 100%;
+  background: var(--atb-col);
+  transition: width 0.05s linear;
+  box-shadow: 0 0 6px var(--amber-glow);
+}
+.enemy-atb-fill.ready {
+  background: var(--amber-hi);
+  box-shadow: 0 0 12px var(--amber-glow);
+  animation: atb-ready 0.6s ease-in-out infinite alternate;
+}
+.enemy-atb-fill.striking {
+  background: #e06030;
+  box-shadow: 0 0 10px rgba(224,96,48,0.5);
+  animation: atb-striking 0.45s ease-in-out infinite alternate;
+}
+@keyframes atb-striking {
+  from { background: #e06030; box-shadow: 0 0 6px rgba(224,96,48,0.4); }
+  to   { background: #ff8040; box-shadow: 0 0 14px rgba(255,128,64,0.7); }
+}
+
+
+.enemy-intent {
+  font-size: 0.62rem;
+  letter-spacing: 0.07em;
+  font-family: var(--font-head);
+  text-align: center;
+  min-height: 1.1em;
+  margin-top: 4px;
+  transition: color 0.3s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.enemy-intent.intent-active {
+  color: var(--text-sub);
+  font-style: italic;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  animation: intent-pulse 1.4s ease-in-out infinite alternate;
+}
+.enemy-intent.intent-striking {
+  color: #ff7040;
+  font-weight: 400;
+  font-style: normal;
+  letter-spacing: 0.10em;
+  animation: intent-strike-pulse 0.5s ease-in-out infinite alternate;
+}
+@keyframes intent-pulse {
+  from { opacity: 0.6; }
+  to   { opacity: 1.0; }
+}
+.intent-eva {
+  color: var(--dodge-col);
+  font-size: 0.54rem;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+}
+.intent-eva-red {
+  color: #ff9060;
+  font-weight: 400;
+  opacity: 1;
+}
+.intent-eva {
+  color: var(--dodge-col);
+  font-style: normal;
+  opacity: 0.9;
+}
+@keyframes intent-strike-pulse {
+  from { opacity: 0.8;  color: #ff7040; }
+  to   { opacity: 1.0;  color: #ff9966; text-shadow: 0 0 8px rgba(255,100,50,0.6); }
+}
+
+
+
+/* ─── SPRITE ENEMY CARD ─────────────────────────── */
+/*
+  HOW TO USE:
+  In your ENEMY_TEMPLATES entry, add:
+    sprite: 'path/to/your-image.png'
+  That enemy will automatically use the sprite card layout.
+  If no sprite is set, the original card layout is used as normal.
+*/
+
+.enemy-card.sprite-card {
+  padding: 0;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  gap: 0;
+  overflow: visible;
+}
+.enemy-card.sprite-card::before { display: none; }
+
+/* The sprite image container */
+.sprite-img-wrap {
+  position: relative;
+  z-index: 1;
+  width: 140px;
+  height: 180px;
+  overflow: hidden;
+  border: 1px solid var(--enemy-color, var(--amber));
+  box-shadow: 0 0 18px var(--enemy-color, var(--amber-glow)), inset 0 0 20px rgba(0,0,0,0.4);
+  flex-shrink: 0;
+  image-rendering: pixelated;
+}
+.enemy-card.boss.sprite-card .sprite-img-wrap {
+  width: 200px;
+  height: 240px;
+}
+
+/* Subtle scanline overlay for a game-feel */
+.sprite-img-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent, transparent 2px,
+    rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px
+  );
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* The actual enemy image */
+.sprite-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  position: relative;
+  z-index: 1;
+  /* idle breathing / squish animation */
+  animation: sprite-idle 4s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+@keyframes sprite-idle {
+  0%   { transform: scaleX(1)    scaleY(1);    }
+  30%  { transform: scaleX(0.98) scaleY(1.03); }
+  60%  { transform: scaleX(1.02) scaleY(0.97); }
+  100% { transform: scaleX(1)    scaleY(1);    }
+}
+
+/* HP / AP overlay at bottom of image */
+.sprite-stats-overlay {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, rgba(7,9,13,0.92) 0%, rgba(7,9,13,0.55) 70%, transparent 100%);
+  padding: 28px 8px 7px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sprite-hp-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.sprite-stat-label {
+  font-size: 0.58rem;
+  font-family: var(--font-head);
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  width: 18px;
+}
+.sprite-hp-bar-track {
+  flex: 1;
+  height: 5px;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.05);
+  overflow: hidden;
+  position: relative;
+}
+.sprite-hp-fill {
+  height: 100%;
+  background: var(--hp-hi);
+  transition: width 0.4s ease, background 0.4s;
+}
+.sprite-hp-text {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  text-align: right;
+  min-width: 52px;
+}
+
+/* AP bar row */
+.sprite-atb-bar-track {
+  flex: 1;
+  height: 3px;
+  background: rgba(255,255,255,0.07);
+  overflow: hidden;
+}
+.sprite-atb-fill {
+  height: 100%;
+  background: var(--atb-col);
+  transition: width 0.05s linear;
+  box-shadow: 0 0 6px var(--amber-glow);
+}
+.sprite-atb-fill.ready {
+  background: var(--amber-hi);
+  animation: atb-ready 0.6s ease-in-out infinite alternate;
+}
+.sprite-atb-fill.striking {
+  background: #e06030;
+  box-shadow: 0 0 10px rgba(224,96,48,0.5);
+  animation: atb-striking 0.45s ease-in-out infinite alternate;
+}
+
+/* Enemy name below the card */
+.sprite-name-row {
+  text-align: center;
+  margin-top: 5px;
+  font-family: var(--font-head);
+  font-size: 0.82rem;
+  color: var(--text);
+  letter-spacing: 0.05em;
+}
+.sprite-subtitle-row {
+  text-align: center;
+  font-size: 0.64rem;
+  color: var(--text-dim);
+  font-style: italic;
+}
+.sprite-intent-row {
+  font-size: 0.62rem;
+  letter-spacing: 0.07em;
+  font-family: var(--font-head);
+  text-align: center;
+  min-height: 1.1em;
+  margin-top: 3px;
+  transition: color 0.3s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sprite-intent-row.intent-active {
+  color: var(--text-sub);
+  font-style: italic;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  animation: intent-pulse 1.4s ease-in-out infinite alternate;
+}
+.sprite-intent-row.intent-striking {
+  color: #ff7040;
+  font-weight: 400;
+  font-size: 0.62rem;
+  animation: intent-strike-pulse 0.5s ease-in-out infinite alternate;
+}
+
+/* Targetable glow for sprite cards */
+.enemy-card.sprite-card.targetable {
+  cursor: crosshair;
+}
+.enemy-card.sprite-card.targetable .sprite-img-wrap {
+  border-color: var(--enemy-color, var(--amber));
+  box-shadow: 0 0 24px var(--enemy-color, var(--amber-glow)), 0 0 48px rgba(208,144,48,0.18);
+  animation: pulse-targetable-sprite 1s ease-in-out infinite alternate;
+}
+@keyframes pulse-targetable-sprite {
+  from { box-shadow: 0 0 10px var(--enemy-color, var(--amber)); }
+  to   { box-shadow: 0 0 30px var(--enemy-color, var(--amber)), 0 0 60px rgba(208,144,48,0.2); }
+}
+.enemy-card.sprite-card.targetable:hover .sprite-img {
+  filter: brightness(1.15);
+}
+
+/* Dead sprite card */
+.enemy-card.sprite-card.dead {
+  opacity: 0.25;
+  filter: grayscale(1);
+  pointer-events: none;
+}
+
+/* ─── STAGE PLATFORM ─────────────────────────────
+  A shared "standing on ground" plate rendered beneath any
+  battler sprite — used by both the ally battler field and
+  sprite-card enemies so they read as standing on the same
+  battle floor instead of floating in space.
+*/
+.sprite-stage {
+  position: relative;
+}
+.stage-platform {
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  width: 88%;
+  height: 24px;
+  transform: translateX(-50%) perspective(60px) rotateX(55deg);
+  background: radial-gradient(ellipse at center,
+    rgba(208,144,48,0.38) 0%,
+    rgba(208,144,48,0.16) 45%,
+    rgba(208,144,48,0.04) 72%,
+    transparent 85%);
+  border-radius: 50%;
+  z-index: 0;
+  pointer-events: none;
+}
+.stage-platform::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(208,144,48,0.35);
+  box-shadow: 0 0 16px rgba(208,144,48,0.22), inset 0 0 10px rgba(0,0,0,0.3);
+}
+.enemy-card.boss .stage-platform { width: 92%; height: 30px; bottom: -11px; }
+/* Platform glows/pulses to match a targetable enemy */
+.enemy-card.sprite-card.targetable .stage-platform {
+  animation: platform-pulse 1s ease-in-out infinite alternate;
+}
+@keyframes platform-pulse {
+  from { filter: brightness(1); }
+  to   { filter: brightness(1.5); }
+}
+/* Ally platform reads a cooler tone so the two sides feel distinct */
+.ally-battler .stage-platform {
+  background: radial-gradient(ellipse at center,
+    rgba(120,184,255,0.32) 0%,
+    rgba(120,184,255,0.14) 45%,
+    rgba(120,184,255,0.03) 72%,
+    transparent 85%);
+}
+.ally-battler .stage-platform::before {
+  border-color: rgba(120,184,255,0.32);
+  box-shadow: 0 0 16px rgba(120,184,255,0.2), inset 0 0 10px rgba(0,0,0,0.3);
+}
+
+/* ─── ALLY BATTLER FIELD (Fire-Emblem-style attack sprites) ───
+  HOW TO USE:
+  In PARTY_CONFIG, give a member a `battler` object:
+    battler: { standby: 'path.png', attack: 'path.png', damaged: 'path.png' }
+  That member will appear as a standing sprite on the left of the
+  field. On their turn they step forward, swap to the attack pose,
+  then step back to standby. If they take a hit, they flash to the
+  damaged pose briefly. Members without a `battler` are unaffected.
+*/
+#ally-field {
+  position: absolute;
+  left: 3%;
+  bottom: 4%;
+  display: flex;
+  align-items: flex-end;
+  gap: 22px;
+  z-index: 3;
+  pointer-events: none;
+  --lunge-dist: 150px;
+}
+
+.ally-battler {
+  position: relative;
+  width: 108px;
+  height: 140px;
+  filter: drop-shadow(2px 10px 6px rgba(0,0,0,0.55));
+}
+.ally-sprite-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  transform: translateX(0);
+  transition: transform 0.32s cubic-bezier(0.34, 0, 0.24, 1);
+}
+.ally-battler img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom center;
+  image-rendering: pixelated;
+  display: block;
+  transform-origin: bottom center;
+  animation: sprite-idle 4s ease-in-out infinite;
+}
+
+/* Stepping forward to strike — moves the sprite, not the platform beneath it */
+.ally-battler.lunge { z-index: 4; }
+.ally-battler.lunge .ally-sprite-inner {
+  transform: translateX(var(--lunge-dist)) translateY(-2px);
+}
+.ally-battler.lunge img {
+  animation: none;
+  filter: brightness(1.08) drop-shadow(0 0 10px rgba(240,184,72,0.35));
+}
+
+/* Briefly flashed when this ally takes a hit */
+.ally-battler.hit-flash img {
+  animation: ally-hit-shake 0.4s ease-in-out;
+  filter: brightness(1.6) saturate(0.3) drop-shadow(0 0 10px rgba(200,48,48,0.5));
+}
+@keyframes ally-hit-shake {
+  0%   { transform: translateX(0); }
+  25%  { transform: translateX(-5px); }
+  50%  { transform: translateX(4px); }
+  75%  { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
+}
+
+/* Defeated ally fades out on the field */
+.ally-battler.dead {
+  opacity: 0.18;
+  filter: grayscale(1) drop-shadow(none);
+  transition: opacity 0.5s ease, filter 0.5s ease;
+}
+.ally-battler.dead img { animation: none; }
+
+/* ─── BATTLE LOG ────────────────────────────────── */
+#battle-log-wrap {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 18px;
+  overflow: hidden;
+  background: var(--ui-surface);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+#battle-log {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 80px;
+}
+#battle-log::-webkit-scrollbar { width: 4px; }
+#battle-log::-webkit-scrollbar-track { background: transparent; }
+#battle-log::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+
+.log-entry {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-sub);
+  animation: log-in 0.25s ease-out backwards;
+}
+@keyframes log-in { from { opacity: 0; transform: translateX(-8px); } }
+.log-action   { color: var(--text); font-weight: 500; }
+.log-overdrive { color: #ff7755; font-weight: 400; letter-spacing: 0.04em; }
+
+.log-damage   { color: #e08060; }
+.log-crit     { color: #ff9944; font-weight: 400; }
+.log-buff     { color: #80c8a0; }
+.log-debuff   { color: #c080d0; }
+.log-dodge    { color: var(--dodge-col); font-style: italic; }
+.log-defeat   { color: #c06060; font-style: italic; }
+.log-header   { color: var(--amber); font-family: var(--font-head); font-size: 0.72rem; letter-spacing: 0.08em; }
+.log-sub      { color: var(--text-dim); font-style: italic; font-size: 0.72rem; }
+.log-system   { color: var(--text-dim); font-style: italic; }
+
+/* ─── PARTY HUD ─────────────────────────────────── */
+#party-hud {
+  display: grid;
+  grid-template-columns: 1fr 290px;
+  background: var(--ui-surface);
+  overflow: visible;
+  position: relative;
+  z-index: 10;
+}
+#party-panels { display: flex; gap: 0; overflow: hidden; }
+
+/* ─── PARTY PANEL ───────────────────────────────── */
+.party-panel {
+  flex: 1;
+  padding: 10px 12px;
+  border-right: 1px solid var(--border);
+  position: relative;
+  transition: background 0.2s;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.party-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--member-color, var(--amber));
+  opacity: 0.6;
+  transition: opacity 0.3s;
+}
+.party-panel.active::before { opacity: 1; }
+.party-panel.active {
+  background: var(--ui-surface2);
+  box-shadow: inset 0 0 40px rgba(255,255,255,0.015);
+}
+.party-panel.dead { opacity: 0.3; filter: grayscale(1); }
+
+/* ─── CHARACTER PORTRAIT AREA ───────────────────── */
+.panel-portrait-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.portrait-frame {
+  width: 80px;
+  height: 92px;
+  background: var(--panel2);
+  border: 1px solid var(--border-hi);
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.portrait-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 60%);
+}
+.portrait-frame::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--member-color, var(--amber)), transparent);
+}
+.portrait-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+}
+.portrait-img.hidden-img { display: none; }
+.portrait-fallback-symbol {
+  font-size: 2.4rem;
+  line-height: 1;
+  color: var(--member-color, var(--text));
+  text-shadow: 0 0 12px var(--member-color, transparent);
+}
+.portrait-info { flex: 1; min-width: 0; }
+.portrait-name {
+  font-family: var(--font-head);
+  font-size: 0.82rem;
+  color: var(--member-color, var(--text));
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.portrait-sub { font-size: 0.62rem; color: var(--text-dim); font-style: italic; margin-bottom: 4px; }
+
+.panel-stats { flex: 1; }
+.stat-row {
+  display: grid;
+  grid-template-columns: 22px 1fr 58px;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+.stat-label {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+.stat-bar {
+  height: 5px;
+  background: rgba(255,255,255,0.05);
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Party HP bar — lush wrapping vines ── */
+.stat-bar.hp-bar {
+  height: 9px;
+  overflow: visible;
+  background: transparent;
+  margin-bottom: 3px;
+  position: relative;
+}
+/* track background */
+.stat-bar.hp-bar::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  top: 2px; height: 5px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 1px;
+}
+/* vine strand along TOP edge of bar — wraps over the fill */
+.stat-bar.hp-bar::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  top: -2px;
+  height: 8px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='8'%3E%3Cpath d='M0 5 C5 1 10 7 15 3 C20 -1 25 6 30 3 C35 0 38 4 40 3' stroke='%2332c86090' stroke-width='1.1' fill='none' stroke-linecap='round'/%3E%3Cellipse cx='8' cy='2' rx='2.5' ry='1.5' fill='%2328a84870' transform='rotate(-20,8,2)'/%3E%3Cellipse cx='22' cy='1' rx='2.2' ry='1.4' fill='%2332b85060' transform='rotate(15,22,1)'/%3E%3Cellipse cx='35' cy='2' rx='2' ry='1.3' fill='%2328a84870' transform='rotate(-10,35,2)'/%3E%3Cpath d='M8 2 Q9 0 11 1' stroke='%2332c86070' stroke-width='0.7' fill='none'/%3E%3Cpath d='M22 1 Q21 -1 23 0' stroke='%2332c86070' stroke-width='0.7' fill='none'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 40px 8px;
+  pointer-events: none;
+  animation: vine-sway-top 5s ease-in-out infinite alternate;
+  z-index: 2;
+}
+
+.stat-fill {
+  height: 100%;
+  transition: width 0.35s ease;
+  position: relative;
+}
+.hp-fill {
+  height: 5px;
+  margin-top: 2px;
+  position: relative;
+  z-index: 1;
+  border-radius: 1px;
+}
+.hp-fill.critical { background: var(--hp-lo); animation: hp-pulse 0.8s ease-in-out infinite alternate; }
+
+/* vine strand along BOTTOM edge — wraps under */
+.hp-fill::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  bottom: -3px;
+  height: 7px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='7'%3E%3Cpath d='M0 2 C6 6 12 1 18 4 C24 7 30 2 36 4 C38 5 39 4 40 4' stroke='%2328a84878' stroke-width='1' fill='none' stroke-linecap='round'/%3E%3Cellipse cx='12' cy='5' rx='2' ry='1.3' fill='%2328a84860' transform='rotate(10,12,5)'/%3E%3Cellipse cx='28' cy='5' rx='1.8' ry='1.2' fill='%2332b85050' transform='rotate(-8,28,5)'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 40px 7px;
+  pointer-events: none;
+  animation: vine-sway-bot 6s ease-in-out infinite alternate-reverse;
+  z-index: 2;
+}
+
+@keyframes vine-sway-top {
+  from { background-position: 0 0; }
+  to   { background-position: 6px 0; }
+}
+@keyframes vine-sway-bot {
+  from { background-position: 0 0; }
+  to   { background-position: -5px 0; }
+}
+@keyframes hp-pulse { from { opacity: 0.7; } to { opacity: 1; } }
+.mp-fill  { background: var(--mp-col); opacity: 0.8; }
+.atb-fill {
+  background: var(--atb-col);
+  transition: width 0.05s linear;
+  box-shadow: 0 0 6px var(--amber-glow);
+}
+.atb-fill.ready {
+  background: var(--amber-hi);
+  box-shadow: 0 0 12px var(--amber-glow);
+  animation: atb-ready 0.6s ease-in-out infinite alternate;
+}
+@keyframes atb-ready { from { box-shadow: 0 0 6px var(--amber); } to { box-shadow: 0 0 18px var(--amber-hi); } }
+
+.stat-value { font-size: 0.62rem; color: var(--text-dim); text-align: right; font-variant-numeric: tabular-nums; }
+
+.status-icons { display: flex; gap: 4px; margin-top: 3px; flex-wrap: wrap; }
+.status-icon { font-size: 0.72rem; }
+
+/* ─── ACTION PANEL ──────────────────────────────── */
+#action-panel {
+  border-left: 1px solid var(--border);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--ui-surface);
+  position: relative;
+  overflow: visible;
+}
+#action-header {
+  font-family: var(--font-head);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+#main-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+
+.action-btn {
+  flex: 1;
+  background: var(--panel2);
+  border: 1px solid var(--border-hi);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 8px 4px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 55px;
+}
+.action-btn:hover { background: rgba(255,255,255,0.06); border-color: var(--amber); color: var(--amber-hi); }
+.action-btn:active { transform: scale(0.97); }
+
+
+#btn-attack.overdrive-mode {
+  border-color: rgba(220,80,60,0.7);
+  color: #ff6644;
+  background: rgba(220,80,60,0.08);
+  letter-spacing: 0.06em;
+  font-size: 0.68rem;
+  animation: overdrive-pulse 1.2s ease-in-out infinite alternate;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 4px;
+}
+#btn-attack.overdrive-mode:hover {
+  background: rgba(220,80,60,0.16);
+  border-color: #ff6644;
+  color: #ff8866;
+}
+#btn-attack.overdrive-mode .overdrive-label {
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  color: rgba(255,100,68,0.7);
+  font-weight: 400;
+}
+@keyframes overdrive-pulse {
+  from { box-shadow: 0 0 6px rgba(220,80,60,0.2); }
+  to   { box-shadow: 0 0 14px rgba(220,80,60,0.5); }
+}
+
+#btn-dodge {
+  border-color: rgba(96,200,192,0.35);
+  color: var(--dodge-col);
+}
+#btn-dodge:hover { border-color: var(--dodge-col); color: #80e0d8; background: rgba(96,200,192,0.06); }
+
+.btn-icon { font-size: 0.88rem; }
+
+/* Skill and item lists float upward as an overlay — never clipped by the panel */
+#skill-list,
+#item-list {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: var(--ui-surface);
+  border: 1px solid var(--border-hi);
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.7);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+#item-list { max-height: 200px; }
+.item-btn {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 0.74rem;
+  padding: 6px 10px;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 1px 8px;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+.item-btn:hover { background: rgba(255,255,255,0.05); border-color: var(--border-hi); }
+.item-btn.depleted { opacity: 0.35; cursor: not-allowed; }
+.item-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.item-name { font-weight: 400; grid-row: 1; grid-column: 1; color: #d0c080; }
+.item-count { grid-row: 1; grid-column: 2; color: var(--text-sub); font-size: 0.68rem; }
+.item-desc { grid-row: 2; grid-column: 1 / -1; color: var(--text-dim); font-style: italic; font-size: 0.66rem; }
+.party-panel.item-targetable {
+  cursor: pointer;
+  outline: 2px solid var(--amber);
+  outline-offset: -2px;
+  box-shadow: inset 0 0 20px rgba(208,144,48,0.1);
+}
+.party-panel.item-targetable:hover { background: rgba(208,144,48,0.06); }
+.skill-btn {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 0.74rem;
+  padding: 6px 10px;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 1px 8px;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+.skill-btn:hover { background: rgba(255,255,255,0.05); border-color: var(--border-hi); }
+.skill-btn.cant-afford { opacity: 0.4; cursor: not-allowed; }
+.skill-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.skill-name { font-weight: 400; grid-row: 1; grid-column: 1; color: var(--text); }
+.skill-mp { grid-row: 1; grid-column: 2; color: var(--mp-col); font-size: 0.68rem; }
+.skill-desc { grid-row: 2; grid-column: 1 / -1; color: var(--text-dim); font-style: italic; font-size: 0.66rem; }
+
+.back-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  padding: 5px 10px;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, color 0.15s;
+}
+.back-btn:hover { border-color: var(--border-hi); color: var(--text); }
+
+#target-prompt {
+  font-size: 0.75rem;
+  color: var(--amber);
+  font-style: italic;
+  animation: prompt-pulse 1s ease-in-out infinite alternate;
+}
+@keyframes prompt-pulse { from { opacity: 0.6; } to { opacity: 1; } }
+
+/* ─── FLOATING DAMAGE ───────────────────────────── */
+.floater {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  pointer-events: none;
+  z-index: 999;
+  font-family: var(--font-head);
+  font-weight: 400;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  animation: float-up 1.3s cubic-bezier(0.22, 0.8, 0.4, 1) forwards;
+}
+@keyframes float-up {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(4px) scale(0.85); }
+  10%  { opacity: 1; transform: translateX(-50%) translateY(0)   scale(1.0); }
+  75%  { opacity: 1; transform: translateX(-50%) translateY(-38px) scale(1.0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-52px) scale(0.95); }
+}
+@keyframes float-dmg {
+  0%   { opacity: 0;   transform: translateX(-50%) translateY(4px)  scale(0.8); }
+  8%   { opacity: 1;   transform: translateX(-50%) translateY(-2px) scale(1.05); }
+  70%  { opacity: 1;   transform: translateX(-50%) translateY(-44px) scale(1.0); }
+  100% { opacity: 0;   transform: translateX(-50%) translateY(-60px) scale(0.95); }
+}
+@keyframes float-crit {
+  0%   { opacity: 0;   transform: translateX(-50%) translateY(2px)  scale(0.75); filter: brightness(2.5); }
+  6%   { opacity: 1;   transform: translateX(-50%) translateY(-4px) scale(1.1);  filter: brightness(1.3); }
+  15%  { opacity: 1;   transform: translateX(-50%) translateY(-8px) scale(1.0);  filter: brightness(1); }
+  75%  { opacity: 1;   transform: translateX(-50%) translateY(-52px) scale(1.0); }
+  100% { opacity: 0;   transform: translateX(-50%) translateY(-68px) scale(0.95); }
+}
+@keyframes float-heal {
+  0%   { opacity: 0;   transform: translateX(-50%) translateY(4px)  scale(0.85); }
+  12%  { opacity: 1;   transform: translateX(-50%) translateY(-2px) scale(1.0); }
+  70%  { opacity: 1;   transform: translateX(-50%) translateY(-40px) scale(1.0); }
+  100% { opacity: 0;   transform: translateX(-50%) translateY(-54px) scale(0.95); }
+}
+@keyframes float-side {
+  0%   { opacity: 0;   transform: translateX(-50%) translateY(2px) scale(0.85); }
+  12%  { opacity: 1;   transform: translateX(-50%) translateY(-2px) scale(1.0); }
+  70%  { opacity: 1;   transform: translateX(-50%) translateY(-22px) scale(1.0); }
+  100% { opacity: 0;   transform: translateX(-50%) translateY(-34px) scale(0.95); }
+}
+.floater-enemy-dmg  {
+  font-size: 1.5rem; color: #e8d8c8;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.8), 0 0 8px rgba(220,200,180,0.4);
+  animation: float-dmg 1.25s ease-out forwards;
+}
+.floater-player-dmg {
+  font-size: 1.35rem; color: #c84040;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.8), 0 0 10px rgba(180,40,40,0.5);
+  animation: float-dmg 1.25s ease-out forwards;
+}
+.floater-crit {
+  font-size: 1.85rem; color: #ffffff;
+  text-shadow: 0 0 6px rgba(255,255,255,0.9), 0 0 18px rgba(200,80,60,0.7), 0 0 36px rgba(180,50,30,0.4), 0 2px 0 rgba(0,0,0,0.9);
+  animation: float-crit 1.5s ease-out forwards;
+}
+.floater-buff   {
+  font-size: 0.95rem; color: #c8c0a8;
+  text-shadow: 0 0 8px rgba(180,168,140,0.5);
+  animation: float-side 1.35s ease-out forwards;
+}
+.floater-debuff {
+  font-size: 0.95rem; color: #9070a8;
+  text-shadow: 0 0 8px rgba(120,80,160,0.5);
+  animation: float-side 1.35s ease-out forwards;
+}
+.floater-heal   {
+  font-size: 1.25rem; color: #d0c890;
+  text-shadow: 0 0 10px rgba(200,188,120,0.6), 0 0 22px rgba(180,168,100,0.3);
+  animation: float-heal 1.5s ease-out forwards;
+}
+.floater-dodge  {
+  font-size: 1.15rem; color: #a0b0b8;
+  text-shadow: 0 0 10px rgba(140,160,170,0.6);
+  animation: float-side 1.2s ease-out forwards;
+}
+
+/* ─── HIT FLASH OVERLAY ──────────────────────────── */
+.hit-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 500;
+  border-radius: inherit;
+  animation: hit-flash-anim 0.56s ease-out forwards;
+}
+.hit-flash-dmg   { background: rgba(220, 200, 180, 0.18); box-shadow: inset 0 0 18px rgba(200,180,160,0.28); }
+.hit-flash-crit  { background: rgba(240, 220, 200, 0.28); box-shadow: inset 0 0 28px rgba(220,80,60,0.35); }
+.hit-flash-magic { background: rgba(80,  60, 140, 0.22); box-shadow: inset 0 0 20px rgba(100,70,180,0.32); }
+.hit-flash-heal  { background: rgba(180, 168, 110, 0.16); box-shadow: inset 0 0 16px rgba(180,168,100,0.28); }
+@keyframes hit-flash-anim {
+  0%   { opacity: 1; }
+  40%  { opacity: 0.6; }
+  100% { opacity: 0; }
+}
+
+/* ─── PARTICLE CANVAS ────────────────────────────── */
+#vfx-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 980;
+  pointer-events: none;
+  width: 100%;
+  height: 100%;
+  display: block;
+  grid-row: 1;
+  grid-column: 1;
+}
+
+/* ─── SCREEN FLASH ───────────────────────────────── */
+#screen-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* ─── SHOCKWAVE RING ─────────────────────────────── */
+.shockwave {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 600;
+  transform: translate(-50%, -50%) scale(0);
+  animation: shockwave-expand 0.55s ease-out forwards;
+}
+@keyframes shockwave-expand {
+  0%   { transform: translate(-50%,-50%) scale(0);   opacity: 0.85; }
+  60%  { transform: translate(-50%,-50%) scale(1.8); opacity: 0.35; }
+  100% { transform: translate(-50%,-50%) scale(2.8); opacity: 0; }
+}
+
+/* ─── RESULT SCREEN ─────────────────────────────── */
+#result-screen {
+  align-items: center;
+  justify-content: flex-start;
+  background: #000;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+/* Center content vertically when it fits, otherwise let it scroll */
+#result-screen > .result-win-screen,
+#result-screen > .result-box {
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+/* Atmospheric bg layers */
+#result-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(208,144,48,0.07) 0%, transparent 65%),
+    radial-gradient(ellipse 120% 80% at 50% 100%, rgba(10,8,4,0.9) 0%, transparent 60%),
+    linear-gradient(160deg, #06080c 0%, #0a0c10 40%, #070508 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+/* Scanline texture */
+#result-screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px, transparent 2px,
+    rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 3px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Win screen: full-bleed cinematic layout ── */
+.result-win-screen {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 680px;
+  padding: 48px 32px 80px;
+  gap: 0;
+  min-height: min-content;
+}
+
+/* Thin top rule */
+.result-top-rule {
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--amber), transparent);
+  margin-bottom: 28px;
+  animation: rule-expand 0.8s cubic-bezier(0.2,0,0.3,1) 0.3s both;
+}
+@keyframes rule-expand {
+  from { width: 0; opacity: 0; }
+  to   { width: 320px; opacity: 1; }
+}
+
+/* Status badge above the title */
+.result-status-badge {
+  font-family: var(--font-head);
+  font-size: 0.6rem;
+  letter-spacing: 0.35em;
+  color: rgba(208,144,48,0.55);
+  margin-bottom: 14px;
+  opacity: 0;
+  animation: fade-rise 0.5s ease-out 0.5s both;
+}
+@keyframes fade-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.result-title {
+  font-family: var(--font-head);
+  font-size: 3.2rem;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-align: center;
+  line-height: 1;
+  margin-bottom: 6px;
+  opacity: 0;
+  animation: title-slam 0.45s cubic-bezier(0.1,0.8,0.2,1) 0.65s both;
+}
+@keyframes title-slam {
+  from { opacity: 0; transform: scale(1.08) translateY(-10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.result-win  {
+  color: var(--amber-hi);
+  text-shadow:
+    0 0 40px rgba(240,184,72,0.35),
+    0 0 80px rgba(208,144,48,0.15),
+    0 2px 0 rgba(0,0,0,0.6);
+}
+.result-lose { color: #cc4444; text-shadow: 0 0 40px rgba(200,60,60,0.3); }
+
+/* Subtitle line under title */
+.result-title-line {
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(208,144,48,0.4), transparent);
+  margin: 20px auto 24px;
+  animation: rule-expand 0.6s ease-out 1.0s both;
+}
+
+/* Main narrative text */
+.result-sub {
+  color: rgba(216,208,192,0.55);
+  font-style: italic;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  text-align: center;
+  margin-bottom: 10px;
+  max-width: 420px;
+  opacity: 0;
+  animation: fade-rise 0.5s ease-out 0.9s both;
+}
+
+/* Rewards block */
+.result-rewards {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 18px 0 22px;
+  opacity: 0;
+  animation: fade-rise 0.5s ease-out 1.05s both;
+}
+.result-xp {
+  color: var(--amber);
+  font-size: 1rem;
+  font-weight: 400;
+  font-family: var(--font-head);
+  letter-spacing: 0.08em;
+}
+.result-reward-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.25em;
+  color: rgba(208,144,48,0.4);
+  font-family: var(--font-head);
+  margin-bottom: 6px;
+}
+
+/* Party status grid */
+.result-party-status {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid rgba(33,37,46,0.8);
+  border-top: none;
+  margin: 4px 0 28px;
+  opacity: 0;
+  animation: fade-rise 0.5s ease-out 1.15s both;
+}
+.result-party-header {
+  font-family: var(--font-head);
+  font-size: 0.55rem;
+  letter-spacing: 0.28em;
+  color: rgba(208,144,48,0.4);
+  text-align: center;
+  padding: 8px 0 6px;
+  border-top: 1px solid rgba(33,37,46,0.8);
+  border-bottom: 1px solid rgba(33,37,46,0.5);
+  margin-bottom: 0;
+}
+.result-member {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  padding: 8px 18px;
+  border-bottom: 1px solid rgba(33,37,46,0.5);
+  position: relative;
+}
+.result-member::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: currentColor;
+  opacity: 0.3;
+}
+.result-member-hp {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.result-member-hp.down {
+  color: rgba(180,60,60,0.7);
+  font-style: italic;
+}
+
+/* Box version (for lose screen) */
+.result-box {
+  position: relative;
+  z-index: 2;
+  border: 1px solid var(--border-hi);
+  border-top: 2px solid #c04040;
+  background: var(--panel);
+  padding: 48px 60px;
+  text-align: center;
+  min-width: 360px;
+  margin: auto;
+  animation: result-in 0.6s ease-out backwards;
+}
+.result-box::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: 15%; right: 15%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(180,60,60,0.6), transparent);
+}
+@keyframes result-in {
+  from { opacity: 0; transform: translateY(24px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Proceed button */
+.result-btn {
+  position: relative;
+  z-index: 2;
+  margin-top: 4px;
+  background: transparent;
+  border: 1px solid rgba(208,144,48,0.5);
+  color: var(--amber);
+  font-family: var(--font-head);
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  padding: 13px 40px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+  opacity: 0;
+  animation: fade-rise 0.5s ease-out 1.3s both;
+  text-transform: uppercase;
+}
+.result-btn:hover {
+  background: var(--amber);
+  color: var(--bg);
+  border-color: var(--amber);
+  box-shadow: 0 0 24px rgba(208,144,48,0.3);
+}
+
+/* Particle field overlay for win screen */
+.result-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+.result-particle {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  background: var(--amber);
+  border-radius: 50%;
+  animation: particle-drift linear infinite;
+  opacity: 0;
+}
+@keyframes particle-drift {
+  0%   { opacity: 0;   transform: translateY(0) scale(1); }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.3; }
+  100% { opacity: 0;   transform: translateY(-120vh) scale(0.5); }
+}
+
+/* Bottom corner detail */
+.result-corner-text {
+  position: absolute;
+  bottom: 24px;
+  right: 28px;
+  z-index: 2;
+  font-family: var(--font-head);
+  font-size: 0.52rem;
+  letter-spacing: 0.22em;
+  color: rgba(208,144,48,0.2);
+  opacity: 0;
+  animation: fade-rise 0.4s ease-out 1.5s both;
+}
+.result-corner-left {
+  position: absolute;
+  bottom: 24px;
+  left: 28px;
+  z-index: 2;
+  font-family: var(--font-ui);
+  font-size: 0.52rem;
+  letter-spacing: 0.06em;
+  color: rgba(216,208,192,0.15);
+  font-style: italic;
+  opacity: 0;
+  animation: fade-rise 0.4s ease-out 1.6s both;
+}
+
+
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+
+/* ─── EXIT TRANSITION OVERLAY ───────────────────── */
+#exit-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  pointer-events: none;
+  background: #000;
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#exit-transition.active {
+  pointer-events: all;
+  animation: exit-fade-in 0.65s cubic-bezier(0.4,0,1,1) forwards;
+}
+@keyframes exit-fade-in {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+#exit-transition-label {
+  font-family: var(--font-head);
+  font-size: 0.62rem;
+  letter-spacing: 0.35em;
+  color: rgba(208,144,48,0.5);
+  opacity: 0;
+}
+#exit-transition.active #exit-transition-label {
+  animation: fade-rise 0.4s ease-out 0.35s both;
+}
+
+/* ─── BATTLE TRANSITION — DRAMATIC WIPE ─────────── */
+/*
+  Three-phase intro:
+  1. Hard-black flash + scanline slam (0–0.25s)
+  2. Vertical split panels wipe open, revealing the bg (0.25–0.7s)
+  3. Text arrives; hold; fade to battle field (0.7–2.65s)
+*/
+#battle-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #000;
+  opacity: 1;
+  transition: opacity 0.65s cubic-bezier(0.4, 0, 1, 1);
+}
+#battle-transition.hidden { display: none; }
+#battle-transition.fading-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Full-screen flash (white slam at t=0) ── */
+#battle-transition::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: #fff;
+  animation: flash-slam 0.28s ease-out 0s both;
+  pointer-events: none;
+}
+@keyframes flash-slam {
+  0%   { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+
+/* ── Scanline overlay ── */
+#battle-transition::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 19;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,0.18) 0px,
+    rgba(0,0,0,0.18) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  animation: scanlines-in 0.5s ease-out 0.1s both;
+  pointer-events: none;
+}
+@keyframes scanlines-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Background image — revealed by wipe panels ── */
+#trans-bg {
+  position: absolute;
+  inset: -6% 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  animation: trans-bg-reveal 2.4s cubic-bezier(0.15, 0, 0.35, 1) 0.18s both;
+  pointer-events: none;
+}
+@keyframes trans-bg-reveal {
+  0%   { opacity: 0;    transform: scale(1.07); }
+  15%  { opacity: 0.45; transform: scale(1.05); }
+  75%  { opacity: 0.45; transform: scale(1.01); }
+  100% { opacity: 0;    transform: scale(1.0);  }
+}
+
+/* ── Left wipe panel ── */
+#trans-bg-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: #000;
+  clip-path: inset(0 50% 0 0);
+  animation: wipe-left 0.45s cubic-bezier(0.85, 0, 0.15, 1) 0.22s both;
+  pointer-events: none;
+}
+@keyframes wipe-left {
+  from { clip-path: inset(0 50% 0 0); }
+  to   { clip-path: inset(0 100% 0 0); }
+}
+
+/* ── Right wipe panel (pseudo on trans-bg-mask is unavailable, use a sibling via JS trick — we inject it in HTML below) ── */
+/* Amber centre slash line — shoots across at the moment of wipe */
+.trans-wipe-slash {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  z-index: 18;
+  background: linear-gradient(to bottom,
+    transparent 0%,
+    rgba(208,144,48,0.9) 30%,
+    rgba(255,200,80,1)   50%,
+    rgba(208,144,48,0.9) 70%,
+    transparent 100%
+  );
+  box-shadow: 0 0 18px 4px rgba(208,144,48,0.6);
+  animation: slash-flare 0.55s ease-out 0.22s both;
+  pointer-events: none;
+}
+@keyframes slash-flare {
+  0%   { opacity: 0;   transform: translateX(-50%) scaleY(0);   }
+  18%  { opacity: 1;   transform: translateX(-50%) scaleY(1);   }
+  55%  { opacity: 0.7; transform: translateX(-50%) scaleY(1);   }
+  100% { opacity: 0;   transform: translateX(-50%) scaleY(0.6); }
+}
+
+/* Right wipe panel */
+.trans-wipe-right {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: #000;
+  clip-path: inset(0 0 0 50%);
+  animation: wipe-right 0.45s cubic-bezier(0.85, 0, 0.15, 1) 0.22s both;
+  pointer-events: none;
+}
+@keyframes wipe-right {
+  from { clip-path: inset(0 0 0 50%); }
+  to   { clip-path: inset(0 0 0 100%); }
+}
+
+/* Dark vignette mask — keeps text readable after the panels open */
+.trans-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background:
+    radial-gradient(ellipse at center, transparent 35%, rgba(4,5,8,0.72) 100%),
+    linear-gradient(to bottom,
+      rgba(7,9,13,0.88) 0%,
+      rgba(7,9,13,0.50) 28%,
+      rgba(7,9,13,0.42) 50%,
+      rgba(7,9,13,0.55) 72%,
+      rgba(7,9,13,0.92) 100%
+    );
+  pointer-events: none;
+}
+
+/* Thin horizontal rule that draws in from centre — like a chapter divider */
+.trans-centre-rule { display: none; }
+@keyframes rule-draw {
+  from { width: 0; }
+  to   { width: 360px; }
+}
+
+/* ── Observation / poem block ── */
+.trans-observation {
+  position: relative;
+  z-index: 6;
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-style: italic;
+  font-weight: 300;
+  color: rgba(216, 208, 192, 0.72);
+  letter-spacing: 0.03em;
+  text-align: center;
+  max-width: 480px;
+  line-height: 1.85;
+  margin-bottom: 28px;
+  opacity: 0;
+  animation: prose-in 0.5s ease-out 0.55s both;
+}
+.trans-observation .obs-speaker {
+  display: block;
+  font-style: normal;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  color: rgba(208,144,48,0.55);
+  margin-top: 10px;
+  font-family: var(--font-head);
+}
+@keyframes prose-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── ENGAGE title ── */
+.transition-title {
+  position: relative;
+  z-index: 6;
+  font-family: var(--font-head);
+  font-size: 2.1rem;
+  font-weight: 400;
+  letter-spacing: 0.38em;
+  color: var(--text);
+  text-align: center;
+  text-shadow: none;
+  opacity: 0;
+  animation: heading-slam 0.35s cubic-bezier(0.1, 0.7, 0.3, 1) 1.12s both;
+}
+.transition-title::before,
+.transition-title::after { display: none; }
+
+/* Diamond / rotated-square frame wrapping the title block */
+.trans-diamond-frame {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  animation: diamond-in 0.45s cubic-bezier(0.1, 0.7, 0.2, 1) 0.95s both;
+}
+@keyframes diamond-in {
+  from { opacity: 0; transform: scale(0.82) rotate(0deg); }
+  to   { opacity: 1; transform: scale(1)    rotate(0deg); }
+}
+/* The actual rotated square border */
+.trans-diamond-frame::before {
+  content: '';
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border: 1px solid rgba(208,144,48,0.55);
+  transform: rotate(45deg);
+  box-shadow:
+    0 0 18px rgba(208,144,48,0.12),
+    inset 0 0 18px rgba(208,144,48,0.06);
+  pointer-events: none;
+  animation: diamond-border-pulse 2.5s ease-in-out 1.4s infinite alternate;
+}
+@keyframes diamond-border-pulse {
+  from { border-color: rgba(208,144,48,0.45); box-shadow: 0 0 12px rgba(208,144,48,0.08); }
+  to   { border-color: rgba(240,184,72,0.75); box-shadow: 0 0 28px rgba(208,144,48,0.22), inset 0 0 12px rgba(208,144,48,0.08); }
+}
+/* Inner second border — slightly smaller, dimmer */
+.trans-diamond-frame::after {
+  content: '';
+  position: absolute;
+  width: 196px;
+  height: 196px;
+  border: 1px solid rgba(208,144,48,0.18);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+/* Corner pip diamonds at the four tips */
+.trans-diamond-pip {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  background: rgba(208,144,48,0.7);
+  transform: rotate(45deg);
+  box-shadow: 0 0 8px rgba(208,144,48,0.5);
+  opacity: 0;
+  animation: pip-in 0.2s ease-out both;
+}
+.trans-diamond-pip.pip-top    { top:    -3px; left: 50%; margin-left: -3.5px; animation-delay: 1.18s; }
+.trans-diamond-pip.pip-bottom { bottom: -3px; left: 50%; margin-left: -3.5px; animation-delay: 1.22s; }
+.trans-diamond-pip.pip-left   { left:   -3px; top:  50%; margin-top:  -3.5px; animation-delay: 1.20s; }
+.trans-diamond-pip.pip-right  { right:  -3px; top:  50%; margin-top:  -3.5px; animation-delay: 1.24s; }
+@keyframes pip-in {
+  from { opacity: 0; transform: rotate(45deg) scale(0); }
+  to   { opacity: 1; transform: rotate(45deg) scale(1); }
+}
+
+.transition-title span {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: 0.60rem;
+  font-style: normal;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  color: rgba(216,208,192,0.32);
+  margin-top: 14px;
+  max-width: 440px;
+  line-height: 1.7;
+  text-shadow: none;
+  animation: prose-in 0.35s ease-out 1.42s both;
+  opacity: 0;
+}
+@keyframes heading-slam {
+  0%   { opacity: 0; transform: scale(1.12) translateY(-6px); letter-spacing: 0.38em; }
+  60%  { opacity: 1; transform: scale(0.98) translateY(1px);  letter-spacing: 0.24em; }
+  100% { opacity: 1; transform: scale(1.0)  translateY(0);    letter-spacing: 0.26em; }
+}
+@keyframes heading-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Top-left: location / chapter marker ── */
+.trans-encounter-badge {
+  position: absolute;
+  top: 22px;
+  left: 26px;
+  z-index: 6;
+  font-family: var(--font-head);
+  font-size: 0.58rem;
+  letter-spacing: 0.25em;
+  color: rgba(208,144,48,0.5);
+  opacity: 0;
+  animation: prose-in 0.3s ease-out 0.55s both;
+}
+/* no dot — the badge reads plain */
+.trans-encounter-badge::before { display: none; }
+
+/* ── Bottom-right: location tag ── */
+.trans-location-badge {
+  position: absolute;
+  bottom: 22px;
+  right: 26px;
+  z-index: 6;
+  font-family: var(--font-ui);
+  font-size: 0.58rem;
+  font-style: italic;
+  font-weight: 300;
+  letter-spacing: 0.06em;
+  color: rgba(216,208,192,0.28);
+  opacity: 0;
+  animation: prose-in 0.3s ease-out 0.88s both;
+}
+
+/* ── Ether-field reading — bottom-left, like Noah's notes ── */
+.trans-field-reading {
+  position: absolute;
+  bottom: 22px;
+  left: 26px;
+  z-index: 6;
+  font-family: var(--font-ui);
+  font-size: 0.56rem;
+  font-weight: 300;
+  color: rgba(216,208,192,0.22);
+  letter-spacing: 0.05em;
+  opacity: 0;
+  line-height: 1.7;
+  animation: prose-in 0.3s ease-out 0.94s both;
+}
+
+/* ── Thin separator rules ── */
+.trans-rule { display: none; }
+.trans-rule.rule-top {
+  top: calc(50% - 52px);
+  animation: rule-draw-sym 0.35s ease-out 0.88s both;
+}
+.trans-rule.rule-bottom {
+  top: calc(50% + 62px);
+  animation: rule-draw-sym 0.35s ease-out 0.95s both;
+}
+@keyframes rule-draw-sym {
+  from { width: 0; }
+  to   { width: 310px; }
+}
+
+/* ── Threat indicator ── */
+.trans-threat {
+  position: absolute;
+  top: 22px;
+  right: 26px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  z-index: 6;
+  opacity: 0;
+  animation: prose-in 0.3s ease-out 0.82s both;
+}
+.trans-threat-label {
+  font-family: var(--font-head);
+  font-size: 0.54rem;
+  letter-spacing: 0.18em;
+  color: rgba(208,144,48,0.35);
+  margin-right: 3px;
+}
+.trans-threat-pip {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(208,144,48,0.18);
+}
+.trans-threat-pip.active {
+  background: rgba(208,144,48,0.65);
+}
+
+/* unused legacy elements — kept but hidden so JS doesn't error */
+#trans-slash-panels,
+#trans-strips,
+#trans-sparks { display: none; }
+.transition-corrupt { display: none; }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE  — compact redesign (≤ 1024px)
+   Matches the "Image 2" layout: enemy field fills space,
+   party strip at bottom with portraits, action bar fixed.
+   Desktop layout is fully preserved above this block.
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+
+  /* ── Grid: header / enemy (fills remaining) / log-hidden / compact party strip */
+  #battle-screen {
+    grid-template-rows: 34px 1fr 0px 110px;
+    height: calc(100dvh - 52px);
+    height: calc(100vh - 52px); /* fallback */
+  }
+
+  /* Prevent grid children from overflowing their rows */
+  #battle-screen > * { min-height: 0; overflow: hidden; }
+
+  /* ── Header: ultra-tight */
+  #battle-header { padding: 0 8px; gap: 6px; }
+  #battle-name-display { font-size: 0.7rem; }
+  #battle-status       { font-size: 0.56rem; }
+  #turn-counter        { font-size: 0.56rem; }
+  #btn-mute            { font-size: 0.72rem; padding: 1px 5px; }
+
+  /* ── Enemy field: compact cards */
+  #enemy-field     { padding: 6px; }
+  #enemy-container { gap: 8px; }
+
+  /* ── Ally battler field: compact + shorter lunge ── */
+  #ally-field    { left: 2%; bottom: 2%; gap: 10px; --lunge-dist: 60px; }
+  .ally-battler  { width: 58px; height: 76px; }
+  .enemy-card               { min-width: 88px; padding: 7px 8px 6px; gap: 2px; }
+  .enemy-card.boss          { min-width: 128px; }
+  .enemy-card.boss .enemy-symbol { font-size: 2rem; }
+  .enemy-symbol             { font-size: 1.5rem; }
+  .enemy-name               { font-size: 0.62rem; }
+  .enemy-subtitle           { font-size: 0.53rem; }
+  .enemy-hp-text            { font-size: 0.55rem; }
+
+  /* ── No battle log row */
+  #battle-log-wrap { display: none; }
+
+  /* ── Party HUD: slim full-width strip — no action panel column */
+  #party-hud {
+    display: block;
+    background: var(--ui-surface);
+    border-top: 1px solid var(--border);
+    height: 110px;
+    overflow: hidden;
+  }
+
+  #party-panels {
+    display: flex;
+    flex-direction: row;
+    height: 110px;
+  }
+
+  /* ── Each party panel: portrait + bars side by side */
+  .party-panel {
+    flex: 1;
+    padding: 6px 7px 4px;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+  }
+
+  /* Portrait row: portrait beside name+bars */
+  .panel-portrait-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  /* Show portrait but smaller */
+  .portrait-frame {
+    display: flex !important;
+    width: 42px;
+    height: 52px;
+    flex-shrink: 0;
+  }
+
+  .portrait-info   { min-width: 0; flex: 1; }
+  .portrait-name   {
+    font-size: 0.62rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+  .portrait-sub    { display: none; }
+
+  /* Status icons: tiny pinned row */
+  .status-icons {
+    display: flex;
+    gap: 2px;
+    margin-top: 0;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    height: 10px;
+  }
+  .status-icon { font-size: 0.54rem; }
+
+  /* ── Compact stat bars */
+  .panel-stats { flex: 1; }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: 16px 1fr 34px;
+    align-items: center;
+    gap: 2px 3px;
+    margin-bottom: 2px;
+  }
+  .stat-label { font-size: 0.46rem; letter-spacing: 0.05em; }
+
+  /* Generic bars: thinner */
+  .stat-bar { height: 3px; overflow: hidden; background: rgba(255,255,255,0.05); }
+
+  /* HP bar: simplified on mobile — drop vine decorations (too small/heavy) */
+  .stat-bar.hp-bar {
+    height: 5px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.05);
+    margin-bottom: 1px;
+  }
+  .stat-bar.hp-bar::before,
+  .stat-bar.hp-bar::after { display: none; }
+
+  .hp-fill          { height: 5px; margin-top: 0; border-radius: 1px; }
+  .hp-fill::before  { display: none; }
+
+  .stat-value { font-size: 0.46rem; }
+
+  /* ── Action panel: fixed slim strip pinned to bottom */
+  #action-panel {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 100;
+    border-left: none;
+    border-top: 1px solid var(--border-hi);
+    padding: 0 8px;
+    height: 52px;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    background: #090c12;
+    display: flex !important;
+  }
+  #action-panel.hidden { display: none !important; }
+
+  #action-header {
+    font-size: 0.56rem;
+    padding-bottom: 0;
+    border-bottom: none;
+    padding-right: 7px;
+    border-right: 1px solid var(--border);
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.04em;
+    line-height: 1.35;
+    max-width: 50px;
+  }
+
+  #main-actions { flex: 1; flex-wrap: nowrap; gap: 5px; }
+
+  .action-btn {
+    padding: 6px 3px;
+    font-size: 0.62rem;
+    min-width: 0;
+    gap: 2px;
+    height: 36px;
+  }
+  .btn-icon { font-size: 0.72rem; }
+
+  /* Skill/item lists: float upward on mobile too */
+  #skill-list,
+  #item-list {
+    position: fixed;
+    bottom: 52px;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    max-height: 50vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    height: auto;
+    padding: 8px;
+    gap: 5px;
+    align-items: stretch;
+  }
+
+  .skill-btn {
+    flex-shrink: 0;
+    height: auto;
+    font-size: 0.66rem;
+    padding: 6px 10px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    white-space: normal;
+    gap: 1px 8px;
+  }
+  .item-btn {
+    flex-shrink: 0;
+    height: auto;
+    font-size: 0.66rem;
+    padding: 6px 10px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    white-space: normal;
+    gap: 1px 8px;
+  }
+
+  /* Descriptions visible in the floating overlay */
+  .skill-desc { display: block; font-size: 0.58rem; }
+  .item-desc  { display: block; font-size: 0.58rem; }
+
+  .skill-name  { font-size: 0.6rem;  grid-row: unset; grid-column: unset; }
+  .skill-mp    { font-size: 0.53rem; grid-row: unset; grid-column: unset; }
+  .item-name   { font-size: 0.6rem;  grid-row: unset; grid-column: unset; }
+  .item-count  { font-size: 0.53rem; grid-row: unset; grid-column: unset; }
+
+  .back-btn {
+    flex-shrink: 0;
+    font-size: 0.58rem;
+    padding: 5px 8px;
+    height: 34px;
+  }
+
+  #target-prompt {
+    font-size: 0.6rem;
+    flex: 1;
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* ── Result screen */
+  .result-box    { padding: 20px 22px; min-width: unset; width: 92vw; margin: auto; }
+  .result-win-screen { padding: 32px 16px 64px; }
+  .result-title  { font-size: 1.3rem; }
+  .result-sub    { font-size: 0.75rem; }
+  .result-xp     { font-size: 0.88rem; }
+  .result-member { font-size: 0.72rem; }
+  .result-btn    { padding: 8px 16px; font-size: 0.7rem; }
+
+  /* ── Floaters: smaller on mobile */
+  .floater-enemy-dmg  { font-size: 0.98rem; }
+  .floater-player-dmg { font-size: 0.88rem; }
+  .floater-crit       { font-size: 1.15rem; }
+
+  /* ── Battle transition */
+  .transition-title      { font-size: 1rem; letter-spacing: 0.12em; }
+  .transition-title span { font-size: 0.58rem; }
+
+
+}
+
+/* ─── TABLET (1025-1280px) — moderate tweaks ──────── */
+@media (min-width: 1025px) and (max-width: 1280px) {
+  #battle-screen { grid-template-rows: 42px 1fr 80px 200px; }
+  #party-hud { grid-template-columns: 1fr 230px; }
+  .portrait-frame { width: 62px; height: 72px; }
+  .enemy-card { min-width: 110px; }
+  .enemy-card.boss { min-width: 160px; }
+  #action-panel { padding: 10px 12px; }
+  .action-btn { font-size: 0.74rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ───────── BATTLE TRANSITION ───────── -->
+<div id="battle-transition" class="hidden">
+  <div id="trans-bg"></div>
+  <div class="trans-vignette"></div>
+  <div id="trans-bg-mask"></div>
+  <div class="trans-wipe-right"></div>
+  <div class="trans-wipe-slash"></div>
+  <div class="transition-corrupt"></div>
+  <div id="trans-slash-panels"></div>
+  <div class="slash-beam"></div>
+  <div class="slash-flash"></div>
+  <div id="trans-strips"></div>
+  <div id="trans-sparks"></div>
+  <!-- observation line — character voice above the title -->
+  <div class="trans-observation" id="trans-observation"></div>
+  <div class="trans-rule rule-top"></div>
+  <!-- encounter name — wrapped in diamond frame -->
+  <div class="trans-diamond-frame">
+    <div class="trans-diamond-pip pip-top"></div>
+    <div class="trans-diamond-pip pip-bottom"></div>
+    <div class="trans-diamond-pip pip-left"></div>
+    <div class="trans-diamond-pip pip-right"></div>
+    <div class="transition-title" id="trans-title"></div>
+  </div>
+  <div class="trans-rule rule-bottom"></div>
+  <!-- corner metadata: muted, specific -->
+  <div class="trans-encounter-badge" id="trans-badge"></div>
+  <div class="trans-location-badge" id="trans-location"></div>
+  <div class="trans-field-reading" id="trans-field"></div>
+  <div class="trans-threat" id="trans-threat"></div>
+</div>
+
+<!-- ───────── BATTLE SCREEN ───────── -->
+<div id="screen-flash"></div>
+<div id="battle-screen" class="screen">
+  <div id="battle-bg"></div>
+  <canvas id="vfx-canvas"></canvas>
+  <div id="battle-header">
+    <span id="turn-counter">Turn <span id="turn-num">0</span></span>
+  </div>
+
+  <div id="enemy-field">
+    <div id="ally-field"></div>
+    <div id="enemy-container"></div>
+  </div>
+
+  <div id="battle-log-wrap">
+    <div id="battle-log"></div>
+  </div>
+
+  <div id="party-hud">
+    <div id="party-panels"></div>
+
+    <div id="action-panel" class="hidden">
+      <div id="action-header">— Select Action —</div>
+      <div id="main-actions">
+        <button class="action-btn" id="btn-attack">
+          <span class="btn-icon">⚔</span> Attack
+        </button>
+        <button class="action-btn" id="btn-skills">
+          <span class="btn-icon">✦</span> Skills
+        </button>
+        <button class="action-btn" id="btn-dodge">
+          <span class="btn-icon">◌</span> Evade
+        </button>
+        <button class="action-btn" id="btn-items">
+          <span class="btn-icon">🎒</span> Items
+        </button>
+      </div>
+      <div id="skill-list" class="hidden"></div>
+      <div id="item-list" class="hidden"></div>
+      <div id="target-prompt" class="hidden">Select a target ↑</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ───────── RESULT SCREEN ───────── -->
+<div id="result-screen" class="screen hidden">
+  <!-- Particle canvas for win -->
+  <div class="result-particles" id="result-particles"></div>
+  <!-- Win layout -->
+  <div class="result-win-screen hidden" id="result-win-layout">
+    <div class="result-top-rule"></div>
+    <div class="result-status-badge">ENCOUNTER RESOLVED</div>
+    <div class="result-title result-win" id="result-title"></div>
+    <div class="result-title-line"></div>
+    <div id="result-body"></div>
+    <button class="result-btn" id="result-btn"></button>
+  </div>
+  <!-- Lose layout -->
+  <div class="result-box hidden" id="result-lose-layout">
+    <div class="result-title result-lose" id="result-title-lose"></div>
+    <div id="result-body-lose"></div>
+    <button class="result-btn" id="result-btn-lose"></button>
+  </div>
+  <!-- Corner flavour text (win only) -->
+  <div class="result-corner-text" id="result-corner-r">KIZUMICHI</div>
+  <div class="result-corner-left" id="result-corner-l">the path continues beyond here</div>
+</div>
+
+<!-- ───────── DEV SECRET MENU ───────── -->
+<div id="dev-menu" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:99998;
+  background:rgba(0,0,0,0.85);
+  align-items:center;
+  justify-content:center;
+  font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif;
+">
+  <div style="
+    background:#0e1118;
+    border:1px solid #d09030;
+    padding:32px 40px;
+    min-width:300px;
+    text-align:center;
+  ">
+    <div style="color:#d09030;font-size:0.65rem;letter-spacing:0.3em;margin-bottom:6px;">DEV ACCESS</div>
+    <div style="color:#f0b848;font-size:1.4rem;font-weight:400;letter-spacing:0.15em;margin-bottom:4px;">TWDEVMENU</div>
+    <div style="color:#60584a;font-size:0.7rem;font-style:italic;margin-bottom:28px;">you found it. now what.</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button id="dev-btn-win" style="
+        background:transparent;
+        border:1px solid #3ab870;
+        color:#3ab870;
+        font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif;
+        font-size:0.85rem;
+        padding:10px 24px;
+        cursor:pointer;
+        letter-spacing:0.1em;
+      ">⚑ INSTANT VICTORY</button>
+      <button id="dev-btn-lose" style="
+        background:transparent;
+        border:1px solid #c83030;
+        color:#c83030;
+        font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif;
+        font-size:0.85rem;
+        padding:10px 24px;
+        cursor:pointer;
+        letter-spacing:0.1em;
+      ">✕ SURRENDER</button>      <button id="dev-btn-overdrive" style="
+        background:transparent;
+        border:1px solid #ff6644;
+        color:#ff6644;
+        font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif;
+        font-size:0.85rem;
+        padding:10px 24px;
+        cursor:pointer;
+        letter-spacing:0.1em;
+      ">&#x26A1; SET OVERDRIVE HP</button>
+      <button id="dev-btn-close" style="
+        background:transparent;
+        border:1px solid #21252e;
+        color:#60584a;
+        font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif;
+        font-size:0.75rem;
+        padding:8px 24px;
+        cursor:pointer;
+        letter-spacing:0.08em;
+        margin-top:6px;
+      ">← CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ───────── EXIT TRANSITION ───────── -->
+<div id="exit-transition"><span id="exit-transition-label">LOADING</span></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  KIZUMICHI — ATB BATTLE SYSTEM
+// ═══════════════════════════════════════════════════════════
+
+const DODGE_CHANCE = 0.70;
+const ENEMY_PARRY_CHANCE = 0.30;
+
+const ITEMS_CONFIG = [
+  // ── Heal HP ──────────────────────────────────────────────
+  {
+    id: 'healing_ether',
+    name: 'Healing Ether',
+    icon: '⚗',
+    count: 8,
+    desc: 'Restores 220 HP to one ally — refined Ether compound, standard field issue',
+    effect: 'heal_hp',
+    amount: 220,
+    target: 'single_ally'
+  },
+  {
+    id: 'resonant_shard',
+    name: 'Resonant Shard',
+    icon: '🔮',
+    count: 4,
+    desc: 'Restores 320 HP to one ally — a crystallised fragment of bridge Ether, packed with residual energy',
+    effect: 'heal_hp',
+    amount: 320,
+    target: 'single_ally'
+  },
+  {
+    id: 'revival_vial',
+    name: 'Revival Vial',
+    icon: '🧪',
+    count: 3,
+    desc: 'Restores 480 HP to one ally — emergency-grade compound, not meant for casual use',
+    effect: 'heal_hp',
+    amount: 480,
+    target: 'single_ally'
+  },
+  {
+    id: 'full_ether',
+    name: 'Full Ether',
+    icon: '✨',
+    count: 2,
+    desc: 'Restores full HP to one ally — a rare, fully-concentrated vial. Use it when it counts',
+    effect: 'heal_hp_full',
+    target: 'single_ally'
+  },
+  // ── Heal MP ──────────────────────────────────────────────
+  {
+    id: 'mp_book',
+    name: 'MP Book',
+    icon: '📘',
+    count: 8,
+    desc: 'Restores 60 MP to one ally — compact field manual with embedded Ether notation',
+    effect: 'heal_mp',
+    amount: 60,
+    target: 'single_ally'
+  },
+  {
+    id: 'ether_crystal_shard',
+    name: 'Ether Shard',
+    icon: '🔷',
+    count: 6,
+    desc: 'Restores 110 MP to one ally — raw crystal fragment, sharp but effective',
+    effect: 'heal_mp',
+    amount: 110,
+    target: 'single_ally'
+  },
+  {
+    id: 'ether_vial',
+    name: 'Ether Vial',
+    icon: '🫧',
+    count: 5,
+    desc: 'Restores 180 MP to one ally — a standard practitioner supply, useful at any stage',
+    effect: 'heal_mp',
+    amount: 180,
+    target: 'single_ally'
+  },
+  // ── Dual Restore ─────────────────────────────────────────
+  {
+    id: 'corridor_tonic',
+    name: 'Corridor Tonic',
+    icon: '🧫',
+    count: 4,
+    desc: 'Restores 200 HP and 80 MP to one ally — a mixed-use field supply, scarce enough to use thoughtfully',
+    effect: 'heal_dual',
+    amount: 200,
+    amount_mp: 80,
+    target: 'single_ally'
+  },
+  {
+    id: 'prime_tonic',
+    name: 'Prime Tonic',
+    icon: '💠',
+    count: 2,
+    desc: 'Restores 350 HP and 150 MP to one ally — a high-grade compound recovered from the bridge supply cache',
+    effect: 'heal_dual',
+    amount: 350,
+    amount_mp: 150,
+    target: 'single_ally'
+  },
+  // ── AP ───────────────────────────────────────────────────
+  {
+    id: 'atb_crystal',
+    name: 'AP Crystal',
+    icon: '⟳',
+    count: 3,
+    desc: 'Fills one ally\'s AP gauge immediately — lets them act out of turn sequence',
+    effect: 'atb_fill',
+    target: 'single_ally'
+  },
+  // ── Buff Items ───────────────────────────────────────────
+  {
+    id: 'swift_book',
+    name: 'Swift Book',
+    icon: '💨',
+    count: 4,
+    desc: 'Permanently raises one ally\'s SPD by 50% for this battle — a field-annotated speed primer',
+    effect: 'spd_up',
+    amount: 0.5,
+    target: 'single_ally'
+  },
+  {
+    id: 'iron_coat',
+    name: 'Iron Coat',
+    icon: '🛡',
+    count: 3,
+    desc: 'Applies DEF +60% to one ally for 4 turns — a field-hardening compound painted onto exposed joints',
+    effect: 'item_def_up',
+    amount: 0.60,
+    duration: 4,
+    target: 'single_ally'
+  },
+  {
+    id: 'edge_primer',
+    name: 'Edge Primer',
+    icon: '🗡',
+    count: 3,
+    desc: 'Applies ATK +50% to one ally for 3 turns — sharpens Ether output and physical strike pressure',
+    effect: 'item_atk_up',
+    amount: 0.50,
+    duration: 3,
+    target: 'single_ally'
+  },
+  {
+    id: 'crit_lens',
+    name: 'Crit Lens',
+    icon: '🎯',
+    count: 4,
+    desc: 'Guarantees one ally\'s next attack is a critical hit — a targeting lens tuned to Ether resonance points',
+    effect: 'item_crit_next',
+    target: 'single_ally'
+  },
+  {
+    id: 'surge_capsule',
+    name: 'Surge Capsule',
+    icon: '⚡',
+    count: 2,
+    desc: 'ATK +70% and SPD +30% to one ally for 2 turns — short but brutal. A last-resort accelerant',
+    effect: 'item_surge',
+    amount_atk: 0.70,
+    amount_spd: 0.30,
+    duration: 2,
+    target: 'single_ally'
+  },
+  // ── Debuff Items ─────────────────────────────────────────
+  {
+    id: 'anchor_round',
+    name: 'Anchor Round',
+    icon: '⚓',
+    count: 4,
+    desc: 'Slows one enemy\'s AP charge rate by 50% for 3 turns — an Ether-laced round that disrupts field timing',
+    effect: 'item_atb_slow',
+    amount: 0.50,
+    duration: 3,
+    target: 'single_enemy'
+  },
+  {
+    id: 'fracture_vial',
+    name: 'Fracture Vial',
+    icon: '🧨',
+    count: 3,
+    desc: 'Reduces one enemy\'s ATK by 40% for 3 turns — shatters Ether cohesion in the target\'s strike arm',
+    effect: 'item_atk_slow',
+    amount: 0.60,
+    duration: 3,
+    target: 'single_enemy'
+  },
+  {
+    id: 'suppress_grenade',
+    name: 'Suppression Grenade',
+    icon: '💥',
+    count: 2,
+    desc: 'Slows AP by 60% and cuts ATK by 30% on all enemies for 2 turns — wide-field disruption device',
+    effect: 'item_suppress_all',
+    amount_atb: 0.40,
+    amount_atk: 0.70,
+    duration: 2,
+    target: 'all_enemies'
+  }
+];
+
+const PARTY_CONFIG = [
+  {
+    id: 'kaden',
+    name: 'Kaden',
+    subtitle: 'Gunblade Vanguard',
+    portrait: 'FC-CHAR/kaden.png',
+    // ── SPRITE MOD: battle-field sprite set ──────────────────
+    // standby = idle stance shown between turns
+    // attack  = pose shown while lunging in to strike
+    // damaged = pose flashed briefly when this character is hit
+    // Any party member with a `battler` object gets the Fire-Emblem-style
+    // "step forward, swing, step back" animation automatically.
+    battler: {
+      standby: 'FC-MEDIA/kaden_standby.png',
+      attack:  'FC-MEDIA/kaden_attack.png',
+      damaged: 'FC-MEDIA/kaden_damaged.png'
+    },
+    maxHp: 460,
+    maxMp: 90,
+    atk: 68,
+    def: 42,
+    spd: 50,
+    color: '#7bb8ff',
+    symbol: '⚔',
+    canDodge: true,
+    skills: [
+      {
+        name: 'Ether Round',
+        cost: 22,
+        power: 1.5,
+        type: 'magic',
+        target: 'single',
+        desc: 'Channel Ether through the blade and discharge at close range'
+      },
+      {
+        name: 'Hold the Line',
+        cost: 16,
+        power: 0,
+        type: 'buff',
+        target: 'all_party',
+        effect: 'def_up',
+        amount: 0.5,
+        duration: 3,
+        desc: 'Kaden plants himself at the front — whole party gains DEF +50% for 3 turns'
+      },
+      {
+        name: 'Breach Shot',
+        cost: 28,
+        power: 2.0,
+        type: 'physical',
+        target: 'single',
+        piercing: 0.7,
+        desc: 'Fire point-blank through the gunblade, tearing through armor with brutal force'
+      },
+      {
+        name: 'Rally Cry',
+        cost: 20,
+        power: 0,
+        type: 'buff',
+        target: 'all_party',
+        effect: 'atk_up',
+        amount: 0.35,
+        duration: 3,
+        desc: 'Kaden shouts to push the party forward — everyone\'s ATK rises by 35% for 3 turns'
+      }
+    ]
+  },
+  {
+    id: 'kurt',
+    name: 'Kurt',
+    subtitle: 'Fire Specialist',
+    portrait: 'FC-CHAR/kurt.png',
+    maxHp: 360,
+    maxMp: 120,
+    atk: 75,
+    def: 24,
+    spd: 45,
+    color: '#ff7733',
+    symbol: '🔥',
+    canDodge: true,
+    skills: [
+      {
+        name: 'Firestorm',
+        cost: 32,
+        power: 1.15,
+        type: 'magic',
+        target: 'all',
+        desc: 'Unleash a wide wave of combustion across the entire field'
+      },
+      {
+        name: 'Concentrated Burn',
+        cost: 40,
+        power: 2.4,
+        type: 'magic',
+        target: 'single',
+        desc: 'Collapse all heat to a single scorching focal point — devastating on one target'
+      },
+      {
+        name: 'Ignition Aura',
+        cost: 26,
+        power: 0,
+        type: 'buff',
+        target: 'all_party',
+        effect: 'atk_up',
+        amount: 0.45,
+        duration: 2,
+        desc: 'Kurt wraps the party in volatile heat — ATK +45% for 2 turns across the whole team'
+      },
+      {
+        name: 'Backdraft',
+        cost: 35,
+        power: 1.7,
+        type: 'magic',
+        target: 'single',
+        desc: 'A delayed pressure wave of superheated air — hits after a brief pause for extra impact'
+      }
+    ]
+  },
+  {
+    id: 'ava',
+    name: 'Ava',
+    subtitle: 'Shadow Operative',
+    portrait: 'FC-CHAR/ava.png',
+    maxHp: 300,
+    maxMp: 70,
+    atk: 72,
+    def: 20,
+    spd: 82,
+    color: '#aacfaa',
+    symbol: '🗡',
+    canDodge: true,
+    skills: [
+      {
+        name: 'Shadow Mark',
+        cost: 20,
+        power: 0,
+        type: 'buff',
+        target: 'all_party',
+        effect: 'crit_next',
+        duration: 1,
+        desc: 'Ava reads the enemy and signals the whole party — everyone\'s next hit lands as a critical'
+      },
+      {
+        name: 'Vital Point',
+        cost: 30,
+        power: 1.8,
+        type: 'physical',
+        target: 'single',
+        piercing: 0.55,
+        desc: 'Drive the blade through armor into a critical gap — ignores most DEF'
+      },
+      {
+        name: 'Phantom Flurry',
+        cost: 28,
+        power: 0.7,
+        type: 'physical',
+        target: 'all',
+        piercing: 0.3,
+        desc: 'Ava blurs through every enemy in a single pass, dealing light damage to all targets'
+      },
+      {
+        name: 'Exploit Weakness',
+        cost: 24,
+        power: 2.2,
+        type: 'physical',
+        target: 'single',
+        piercing: 0.8,
+        desc: 'Strike the exact seam Ava has already mapped — almost completely bypasses armor'
+      }
+    ]
+  }
+];
+
+
+// ── OVERDRIVE definitions — keyed by character id ──────────
+const OVERDRIVE_CONFIG = {
+  kaden: {
+    name: 'REQUIEM',
+    desc: 'A cascading sequence of strikes — each hit resonates deeper than the last, tearing open whatever stands in its way',
+    skill: {
+      name: 'Requiem',
+      type: 'physical',
+      target: 'single',
+      cost: 0,
+      isOverdrive: true,
+      isRequiem: true,
+      strikes: [200, 400, 800, 3200]
+    }
+  },
+  iris: {
+    name: 'SILVER DIRGE',
+    desc: 'Iris releases the full depth of her bloodline at once — silver Ether tears through every enemy on the field',
+    skill: {
+      name: 'Silver Dirge',
+      type: 'magic',
+      target: 'all',
+      cost: 0,
+      isOverdrive: true,
+      flatDamage: 3530
+    }
+  },
+  ava: {
+    name: 'BLACK THREAD SEVERANCE',
+    desc: 'Every gap Ava has mapped, every weakness she has read — executed simultaneously in a single precise strike',
+    skill: {
+      name: 'Black Thread Severance',
+      type: 'physical',
+      target: 'single',
+      cost: 0,
+      isOverdrive: true,
+      flatDamage: 3500
+    }
+  },
+  kurt: {
+    name: 'BASTION GUARD',
+    desc: 'Kurt locks the field. Every blow the party takes for the rest of the fight is reduced — permanent, unconditional',
+    skill: {
+      name: 'Bastion Guard',
+      type: 'buff',
+      target: 'all_party',
+      power: 0,
+      cost: 0,
+      isOverdrive: true,
+      isBastionGuard: true
+    }
+  }
+};
+
+// HP threshold below which OVERDRIVE becomes available (30%)
+const OVERDRIVE_THRESHOLD = 0.30;
+
+const ENEMY_TEMPLATES = {
+  anima_soldier: {
+    name: 'Anima Soldier',
+    subtitle: 'Loyal to the bloodline',
+    maxHp: 220,
+    atk: 65, def: 35, spd: 40,
+    color: '#c03030',
+    symbol: '⬡',
+    xp: 55,
+    canDodge: false,
+    skills: [
+      { name: 'Strike',             power: 1.0,  type: 'physical', target: 'random', weight: 0.65 },
+      { name: 'Coordinated Strike', power: 1.4,  type: 'physical', target: 'random', weight: 0.35 }
+    ]
+  },
+  bloodline_practitioner: {
+    name: 'Bloodline Practitioner',
+    subtitle: 'Grey Coat Specialist',
+    maxHp: 165,
+    atk: 75, def: 18, spd: 52,
+    color: '#7040b0',
+    symbol: '◈',
+    xp: 90,
+    canDodge: true,            // this one tries to dodge
+    skills: [
+      { name: 'Dark Strike',      power: 1.25, type: 'magic',  target: 'random',    weight: 0.55 },
+      { name: 'Suppression Wave', power: 0,    type: 'debuff', target: 'all_party',
+        effect: 'atb_slow', amount: 0.55, duration: 2,                              weight: 0.45 }
+    ]
+  },
+  gate_warden: {
+    sprite: 'FC-CHAR/gate_warden.png',
+    name: 'Gate-Warden',
+    subtitle: 'The first real threat, forged by Zenis.',
+    maxHp: 1850,
+    atk: 350, def: 35, spd: 50,
+    color: '#d4a020',
+    symbol: '⬟',
+    xp: 600,
+    drops: [
+      { name: 'Remnant Ether', amount: 6 },
+      { name: 'Pure Ether Crystal', amount: 1 }
+    ],
+    isBoss: true,
+    canDodge: false,
+    skills: [
+      { name: 'Keystone Sweep', power: 1.35, type: 'physical', target: 'all_party', weight: 0.30 },
+      { name: 'Bridge Slam',    power: 2.2,  type: 'physical', target: 'random',    weight: 0.50 },
+      { name: 'Ether Drain',    power: 0.75, type: 'magic',    target: 'random',
+        effect: 'mp_drain',                                                          weight: 0.20 }
+    ]
+  }
+  // ── ADD CUSTOM ENEMIES HERE ──
+  // my_enemy: {
+  //   name: 'My Enemy',
+  //   subtitle: 'Some description',
+  //   maxHp: 300,
+  //   atk: 60, def: 30, spd: 45,
+  //   color: '#ff4488',
+  //   symbol: '★',
+  //   sprite: 'path/to/enemy-sprite.png',   // ← SPRITE MOD: add this to use an image card
+  //   xp: 120,
+  //   canDodge: false,
+  //   skills: [
+  //     { name: 'Slam', power: 1.2, type: 'physical', target: 'random', weight: 1.0 }
+  //   ]
+  // }
+  ,anima_army_leader: {
+    name: 'Anima Army Leader',
+    subtitle: 'Field Commander of the Anima vanguard',
+    maxHp: 980,
+    atk: 130, def: 42, spd: 62,
+    color: '#9a2d3c',
+    symbol: '◆',
+    xp: 420,
+    canDodge: true,
+    skills: [
+      { name: 'Command Slash',   power: 1.45, type: 'physical', target: 'random',    weight: 0.42 },
+      { name: 'Anima Burst',     power: 1.2,  type: 'magic',    target: 'all_party', weight: 0.28 },
+      { name: 'Rally Disruption', power: 0,   type: 'debuff',   target: 'all_party',
+        effect: 'atb_slow', amount: 0.50, duration: 2,                               weight: 0.30 }
+    ]
+  }
+};
+
+const BATTLE = {
+  name: 'CONFRONTATION PROCEEDS',
+  subtitle: 'Do not fear the enemy, with tactical and precise movement, even the toughest encounter can be overcomed with ease.',
+  location: 'KYOSHIN CROSSING  ·  BRIDGE 1',
+  bg: 'FC-MEDIA/field1.webp',
+  enemies: ['gate_warden'],
+  isBoss: false
+};
+
+const ATB_RATE  = 0.00048;
+const CRIT_MULT = 1.75;
+
+let state = {
+  phase: 'IDLE',
+  party: [],
+  enemies: [],
+  activeChar: null,
+  selectedAction: null,
+  readyQueue: [],
+  turn: 0,
+  animating: false,
+  loopHandle: null
+};
+
+let lastTime = 0;
+
+function initParty() {
+  // ── Kaden-only party for this encounter — filter PARTY_CONFIG down
+  // to just his entry. Kurt/Ava configs are left intact above in case
+  // you want to bring them back into rotation for other battles.
+  return PARTY_CONFIG.filter(cfg => cfg.id === 'kaden').map(cfg => ({
+    ...cfg, hp: cfg.maxHp, mp: cfg.maxMp,
+    atb: 0, buffs: [], dead: false, isParty: true,
+    critNext: false, atbMult: 1.0, defMult: 1.0, atkMult: 1.0,
+    dodging: false, overdriveUsed: false,
+    items: ITEMS_CONFIG.map(it => ({ ...it }))
+  }));
+}
+
+function initEnemies() {
+  return BATTLE.enemies.map((key, i) => {
+    const t = ENEMY_TEMPLATES[key];
+    return {
+      ...t, id: `e${i}`, hp: t.maxHp,
+      atb: Math.random() * 25,
+      buffs: [], dead: false, isParty: false,
+      atbMult: 1.0, defMult: 1.0, atkMult: 1.0,
+      dodging: false
+    };
+  });
+}
+
+function calcDamage(attacker, skill, defender) {
+  let base = attacker.atk * (attacker.atkMult || 1) * skill.power;
+  base *= 0.9 + Math.random() * 0.2;
+  if (skill.type === 'physical') {
+    const eff = defender.def * (defender.defMult || 1);
+    const pierce = skill.piercing || 0;
+    base -= eff * (1 - pierce) * 0.4;
+  }
+  let crit = false;
+  if (attacker.critNext) {
+    base *= CRIT_MULT;
+    crit = true;
+    attacker.critNext = false;
+  }
+  return { dmg: Math.max(1, Math.round(base)), crit };
+}
+
+function applyBuff(target, effect, amount, duration) {
+  target.buffs = target.buffs.filter(b => b.effect !== effect);
+  target.buffs.push({ effect, amount, duration });
+  switch (effect) {
+    case 'def_up':    target.defMult  = 1 + amount; break;
+    case 'atk_up':   target.atkMult  = 1 + amount; break;
+    case 'crit_next': target.critNext = true;        break;
+    case 'atb_slow':  target.atbMult  = amount;      break;
+    case 'atk_slow':  target.atkMult  = amount;      break;
+    case 'spd_up':    target.spd = Math.round(target.spd * (1 + amount)); break;
+  }
+}
+
+function tickBuffs(char) {
+  char.buffs = char.buffs.filter(b => {
+    if (b.effect === 'spd_up') return true;
+    if (--b.duration <= 0) {
+      switch (b.effect) {
+        case 'def_up':   char.defMult  = 1.0; break;
+        case 'atk_up':  char.atkMult  = 1.0; break;
+        case 'atb_slow': char.atbMult  = 1.0; break;
+        case 'atk_slow': char.atkMult  = 1.0; break;
+      }
+      return false;
+    }
+    return true;
+  });
+}
+
+function aiChooseSkill(enemy) {
+  const total = enemy.skills.reduce((s, sk) => s + (sk.weight || 1), 0);
+  let r = Math.random() * total;
+  for (const sk of enemy.skills) { if ((r -= sk.weight || 1) <= 0) return sk; }
+  return enemy.skills[0];
+}
+
+function aiChooseTargets(skill) {
+  const alive = state.party.filter(p => !p.dead);
+  if (!alive.length) return null;
+  if (skill.target === 'all_party') return alive;
+  return [alive[Math.floor(Math.random() * alive.length)]];
+}
+
+function checkDodge(target) {
+  // Player dodge action
+  if (target.dodging) {
+    target.dodging = false;
+    return Math.random() < DODGE_CHANCE;
+  }
+  // AP-based enemy evasion — scales with AP, bigger jump in red zone
+  if (!target.isParty) {
+    const ap = target.atb;
+    let chance;
+    if (target.canDodge) {
+      // Full dodgers: 0→20% normal zone, 20→55% red zone
+      chance = ap >= 80
+        ? 0.20 + ((ap - 80) / 20) * 0.35
+        : (ap / 80) * 0.20;
+    } else {
+      // Non-dodgers: small residual evasion at high AP
+      chance = ap >= 80
+        ? 0.05 + ((ap - 80) / 20) * 0.10
+        : (ap / 80) * 0.05;
+    }
+    return Math.random() < chance;
+  }
+  return false;
+}
+
+// Returns the display dodge % for an enemy at a given AP (mirrors checkDodge curve)
+function enemyEvaPercent(enemy) {
+  const ap = enemy.atb;
+  if (enemy.canDodge) {
+    if (ap >= 80) return Math.round((0.20 + ((ap - 80) / 20) * 0.35) * 100);
+    return Math.round((ap / 80) * 0.20 * 100);
+  } else {
+    // Non-dodgers still have a small residual evasion at high AP
+    if (ap >= 80) return Math.round((0.05 + ((ap - 80) / 20) * 0.10) * 100);
+    return Math.round((ap / 80) * 0.05 * 100);
+  }
+}
+
+function shouldEnemyParry(actor, skill, target) {
+  if (!actor?.isParty || target?.isParty || target?.dead) return false;
+  if (skill.type !== 'physical' && skill.type !== 'magic') return false;
+  return Math.random() < ENEMY_PARRY_CHANCE;
+}
+
+// ─── ALLY BATTLER ANIMATION HELPERS ────────────────────────
+// Fire-Emblem-style: step forward + swap to attack pose, then
+// step back + swap to standby. Only runs for party members that
+// have a `battler` sprite set defined in PARTY_CONFIG.
+
+function getAllyBattlerParts(actor) {
+  if (!actor || !actor.isParty || !actor.battler) return null;
+  const wrap = el(`ally-battler-${actor.id}`);
+  if (!wrap) return null;
+  const img = wrap.querySelector('img');
+  if (!img) return null;
+  return { wrap, img };
+}
+
+async function allyLungeForward(actor) {
+  const parts = getAllyBattlerParts(actor);
+  if (!parts) { await wait(320); return; }
+  const { wrap, img } = parts;
+  img.src = actor.battler.attack;
+  // force reflow so the transform transition reliably triggers
+  void wrap.offsetWidth;
+  wrap.classList.add('lunge');
+  await wait(320);
+}
+
+async function allyReturnToStandby(actor) {
+  const parts = getAllyBattlerParts(actor);
+  if (!parts) { await wait(260); return; }
+  const { wrap, img } = parts;
+  wrap.classList.remove('lunge');
+  await wait(300);
+  if (!actor.dead) img.src = actor.battler.standby;
+}
+
+function allyFlashDamaged(target) {
+  const parts = getAllyBattlerParts(target);
+  if (!parts) return;
+  const { wrap, img } = parts;
+  if (wrap.classList.contains('lunge')) return; // don't interrupt an attack pose mid-swing
+  img.src = target.battler.damaged;
+  wrap.classList.remove('hit-flash');
+  void wrap.offsetWidth;
+  wrap.classList.add('hit-flash');
+  setTimeout(() => {
+    wrap.classList.remove('hit-flash');
+    if (!target.dead && !wrap.classList.contains('lunge')) img.src = target.battler.standby;
+  }, 420);
+}
+
+async function resolveAction(actor, skill, targets) {
+  state.animating = true;
+  if (!Array.isArray(targets)) targets = targets ? [targets] : [];
+
+  if (skill.isOverdrive && !skill.isBastionGuard) {
+    VFX.screenFlash('rgba(255,80,40,0.12)', 350);
+    VFX.shake(0.5);
+  }
+  addLog(`${actor.name} uses ${skill.name}`, skill.isOverdrive ? 'overdrive' : 'action');
+
+  const isStrike = skill.type === 'physical' || skill.type === 'magic';
+  if (actor.isParty && actor.battler && isStrike) {
+    await allyLungeForward(actor);
+    if (skill.isOverdrive) await wait(160);
+  } else {
+    await wait(skill.isOverdrive ? 480 : 320);
+  }
+
+  for (const target of targets) {
+    if (!target || target.dead) continue;
+
+    if (skill.type === 'buff') {
+      const buffTargets = skill.target === 'all_party'
+        ? state.party.filter(p => !p.dead)
+        : [actor];
+      for (const bt of buffTargets) {
+        applyBuff(bt, skill.effect, skill.amount || 0, skill.duration || 2);
+        const msg = {
+          crit_next: `${bt.name} is marked — next hit is critical`,
+          def_up:    `${bt.name}'s DEF increases`,
+          atk_up:    `${bt.name}'s ATK increases`
+        }[skill.effect] || `${bt.name} buffed`;
+        addLog(msg, 'buff');
+        showFloat(bt, skill.effect === 'crit_next' ? 'CRIT+' : 'BUFF', 'buff');
+      }
+      AUDIO.sfxBuff();
+      await wait(380);
+      break; // buff is applied once to all targets — do not loop again per target
+    }
+
+    if (skill.type === 'debuff') {
+      const debuffTargets = skill.target === 'all_party'
+        ? state.party.filter(p => !p.dead)
+        : [target];
+      for (const dt of debuffTargets) {
+        applyBuff(dt, skill.effect, skill.amount || 0.5, skill.duration || 2);
+        if (skill.effect === 'atb_slow') dt.atb *= 0.65;
+        showFloat(dt, '◌ SLOW', 'debuff');
+      }
+      addLog(`Suppression Wave hits — party AP slowed`, 'debuff');
+      render(); await wait(380);
+      continue;
+    }
+
+    if (shouldEnemyParry(actor, skill, target)) {
+      addLog(`${target.name} cancels ${skill.name}!`, 'dodge');
+      showFloat(target, 'CANCEL', 'dodge');
+      await wait(300);
+      continue;
+    }
+
+
+    // ── REQUIEM: multi-strike with fixed escalating damage ──
+    if (skill.isRequiem && skill.strikes) {
+      VFX.shake(0.6);
+      for (let si = 0; si < skill.strikes.length; si++) {
+        if (target.dead) break;
+        const strikeDmg = skill.strikes[si];
+        target.hp = Math.max(0, target.hp - strikeDmg);
+        addLog(`${actor.name} — Strike ${si+1}${si===3?' ◈ FINAL':''}: ${strikeDmg}`, si===3?'crit':'overdrive');
+        showFloat(target, strikeDmg, si===3?'crit':'enemy-dmg', actor);
+        VFX.burstByActor(target, actor, si===3);
+        if (target.hp <= 0) target.dead = true;
+        if (si===3) AUDIO.sfxCrit(); else AUDIO.sfxHit();
+        render();
+        await wait(si===3?420:280);
+      }
+      if (target.dead) { target.atb = 0; state.readyQueue = state.readyQueue.filter(c => c.id !== target.id); addLog(`${target.name} is defeated`, 'defeat'); }
+      continue;
+    }
+
+    // ── FLAT DAMAGE OVERDRIVE (Silver Dirge / Black Thread Severance) ──
+    if (skill.flatDamage !== undefined) {
+      const fdmg = skill.flatDamage;
+      target.hp = Math.max(0, target.hp - fdmg);
+      addLog(`${actor.name} — ${skill.name}: ${fdmg} ◈ Overdrive`, 'overdrive');
+      showFloat(target, fdmg, 'crit', actor);
+      VFX.burstByActor(target, actor, true);
+      if (target.hp <= 0) target.dead = true;
+      AUDIO.sfxCrit();
+      VFX.shake(0.8);
+      if (target.dead) { target.atb = 0; state.readyQueue = state.readyQueue.filter(c => c.id !== target.id); addLog(`${target.name} is defeated`, 'defeat'); }
+      render();
+      await wait(420);
+      continue;
+    }
+
+    if (checkDodge(target)) {
+      addLog(`${target.name} evades the attack`, 'dodge');
+      showFloat(target, 'EVADE', 'dodge');
+      await wait(300);
+      continue;
+    }
+
+    const { dmg, crit } = calcDamage(actor, skill, target);
+    target.hp = Math.max(0, target.hp - dmg);
+
+    if (skill.effect === 'mp_drain' && target.mp !== undefined) {
+      const d = Math.min(target.mp, Math.round(dmg * 0.3));
+      target.mp -= d;
+      if (actor.mp !== undefined) actor.mp = Math.min(actor.maxMp || 999, (actor.mp || 0) + d);
+    }
+
+    addLog(`${target.name} takes ${dmg} damage${crit ? ' ◈ Critical' : ''}`, crit ? 'crit' : 'damage');
+    showFloat(target, dmg, crit ? 'crit' : (actor.isParty ? 'enemy-dmg' : 'player-dmg'), actor);
+    if (target.isParty && target.battler) allyFlashDamaged(target);
+    if (skill.type === 'magic') { VFX.burstMagic(target, actor); AUDIO.sfxMagic(); }
+    else if (crit) AUDIO.sfxCrit();
+    else AUDIO.sfxHit();
+    render(); await wait(220);
+
+    if (target.hp <= 0 && !target.dead) {
+      target.dead = true; target.atb = 0;
+      state.readyQueue = state.readyQueue.filter(c => c.id !== target.id);
+      addLog(`${target.name} is defeated`, 'defeat');
+      AUDIO.sfxDefeat();
+      VFX.burstDefeat(target);
+      const card = getCardEl(target);
+      if (card) card.classList.add('dead');
+      if (target.isParty && target.battler) {
+        const battlerEl = el(`ally-battler-${target.id}`);
+        if (battlerEl) battlerEl.classList.add('dead');
+      }
+      await wait(360);
+    }
+  }
+
+  if (actor.isParty && actor.battler && isStrike) {
+    await allyReturnToStandby(actor);
+  }
+
+  tickBuffs(actor);
+  if (actor.isParty && skill.cost) actor.mp = Math.max(0, actor.mp - skill.cost);
+  render();
+
+  const aliveEnemies = state.enemies.filter(e => !e.dead);
+  const aliveParty   = state.party.filter(p => !p.dead);
+  if (!aliveEnemies.length) { await wait(500); endBattle(true);  return; }
+  if (!aliveParty.length)   { await wait(500); endBattle(false); return; }
+
+  state.animating = false;
+  state.phase = 'IDLE';
+  scheduleLoop();
+}
+
+async function resolvePlayerDodge(actor) {
+  state.animating = true;
+  const alive = state.party.filter(p => !p.dead);
+  alive.forEach(p => {
+    p.dodging = true;
+    showFloat(p, '◌ READY', 'dodge');
+  });
+  addLog('The party braces to evade', 'dodge');
+  render();
+  await wait(400);
+  state.animating = false;
+  state.phase = 'IDLE';
+  scheduleLoop();
+}
+
+async function resolveEnemyDodge(enemy) {
+  state.animating = true;
+  enemy.dodging = true;
+  addLog(`${enemy.name} braces to evade`, 'dodge');
+  showFloat(enemy, '◌ EVADE', 'dodge');
+  render(); await wait(400);
+  state.animating = false;
+  state.phase = 'IDLE';
+  scheduleLoop();
+}
+
+function scheduleLoop() {
+  if (state.loopHandle) cancelAnimationFrame(state.loopHandle);
+  lastTime = performance.now();
+  state.loopHandle = requestAnimationFrame(gameLoop);
+}
+
+function gameLoop(ts) {
+  if (['WIN','LOSE','RESOLVING'].includes(state.phase) || state.animating) return;
+  const delta = Math.min(ts - lastTime, 50);
+  lastTime = ts;
+
+  if (state.phase === 'IDLE') {
+    const all = [...state.party, ...state.enemies].filter(c => !c.dead);
+    for (const c of all) {
+      if (c.atb >= 100) continue;
+      c.atb = Math.min(100, c.atb + c.spd * delta * ATB_RATE * (c.atbMult || 1));
+      if (c.atb >= 100 && !state.readyQueue.find(q => q.id === c.id)) {
+        state.readyQueue.push(c);
+      }
+    }
+    renderATBOnly();
+    if (state.readyQueue.length) processNext();
+  }
+  state.loopHandle = requestAnimationFrame(gameLoop);
+}
+
+function processNext() {
+  if (state.animating || state.phase === 'RESOLVING') return;
+  while (state.readyQueue.length && state.readyQueue[0].dead) state.readyQueue.shift();
+  if (!state.readyQueue.length) return;
+
+  const next = state.readyQueue[0];
+
+  if (next.isParty) {
+    state.phase = 'PLAYER_ACTION';
+    state.activeChar = next;
+    openActionPanel(next);
+    render();
+  } else {
+    state.readyQueue.shift();
+    state.phase = 'RESOLVING';
+    state.animating = true;
+    next.atb = 0;
+    state.turn++;
+    updateTurnNum();
+
+    // Dodge chance scales with AP: higher AP = more reactive = better dodge
+    // Range: 0% at 0 AP → up to 50% at 100 AP, only if canDodge
+    const apDodgeChance = next.canDodge && !next.dodging
+      ? (next.atb / 100) * 0.50
+      : 0;
+    if (next.canDodge && !next.dodging && Math.random() < apDodgeChance) {
+      setTimeout(() => resolveEnemyDodge(next), 300);
+    } else {
+      // Use pre-rolled skill if available, otherwise pick now
+      const skill   = next.pendingSkill || aiChooseSkill(next);
+      next.pendingSkill = null;
+      const targets = aiChooseTargets(skill);
+      setTimeout(() => resolveAction(next, skill, targets), 460);
+    }
+  }
+}
+
+function openActionPanel(char) {
+  const panel  = el('action-panel');
+  const header = el('action-header');
+  const main   = el('main-actions');
+  const skillLi = el('skill-list');
+  const prompt = el('target-prompt');
+
+  panel.classList.remove('hidden');
+  skillLi.classList.add('hidden');
+  el('item-list').classList.add('hidden');
+  prompt.classList.add('hidden');
+  main.classList.remove('hidden');
+  header.textContent = `${char.name}'s Turn`;
+  header.style.color = char.color;
+
+  // ── OVERDRIVE button swap ──
+  const btnAttack = el('btn-attack');
+  const btnSkills = el('btn-skills');
+  const btnDodge  = el('btn-dodge');
+  const btnItems  = el('btn-items');
+  const od = OVERDRIVE_CONFIG[char.id];
+  const hpPct = char.hp / char.maxHp;
+  const overdriveAvailable = od && !char.overdriveUsed && hpPct <= OVERDRIVE_THRESHOLD;
+
+  if (overdriveAvailable) {
+    btnAttack.classList.add('overdrive-mode');
+    btnAttack.innerHTML = `<span class="overdrive-label">OVERDRIVE</span><span>${od.name}</span>`;
+    btnSkills.classList.add('hidden');
+    btnDodge.classList.add('hidden');
+    btnItems.classList.add('hidden');
+  } else {
+    btnAttack.classList.remove('overdrive-mode');
+    btnAttack.innerHTML = `<span class="btn-icon">⚔</span> Attack`;
+    btnSkills.classList.remove('hidden');
+    btnDodge.classList.remove('hidden');
+    btnItems.classList.remove('hidden');
+    btnDodge.style.opacity = '1';
+    btnDodge.style.pointerEvents = 'auto';
+  }
+}
+
+function closeActionPanel() {
+  el('action-panel').classList.add('hidden');
+  el('skill-list').classList.add('hidden');
+  el('item-list').classList.add('hidden');
+  el('target-prompt').classList.add('hidden');
+  el('main-actions').classList.remove('hidden');
+  clearTargetMode();
+  clearItemTargetMode();
+}
+
+function enterTargetMode() {
+  state.phase = 'PLAYER_TARGET';
+  el('main-actions').classList.add('hidden');
+  el('skill-list').classList.add('hidden');
+  const prompt = el('target-prompt');
+  prompt.classList.remove('hidden');
+  prompt.innerHTML = `Select a target above &nbsp;↑<br><button class="back-btn" id="btn-cancel-target" style="margin-top:6px">← Back</button>`;
+  document.getElementById('btn-cancel-target').onclick = cancelTargetMode;
+  state.enemies.filter(e => !e.dead).forEach(e => {
+    const card = el(`enemy-card-${e.id}`);
+    if (card) { card.classList.add('targetable'); card.onclick = () => playerTargetEnemy(e.id); }
+  });
+}
+
+function cancelTargetMode() {
+  clearTargetMode();
+  state.phase = 'PLAYER_ACTION';
+  el('main-actions').classList.remove('hidden');
+  el('target-prompt').classList.add('hidden');
+  el('target-prompt').innerHTML = '';
+}
+
+function clearTargetMode() {
+  state.enemies.forEach(e => {
+    const card = el(`enemy-card-${e.id}`);
+    if (card) { card.classList.remove('targetable', 'targeted'); card.onclick = null; }
+  });
+}
+
+function playerTargetEnemy(enemyId) {
+  if (state.phase !== 'PLAYER_TARGET') return;
+  const target = state.enemies.find(e => e.id === enemyId && !e.dead);
+  if (!target) return;
+  clearTargetMode();
+  commitPlayerAction([target]);
+}
+
+function commitPlayerAction(targets) {
+  const actor = state.activeChar;
+  const skill = state.selectedAction.skill;
+  state.readyQueue.shift();
+  actor.atb = 0;
+  state.phase = 'RESOLVING';
+  state.turn++;
+  updateTurnNum();
+  closeActionPanel();
+  resolveAction(actor, skill, targets);
+}
+
+function onAttack() {
+  if (state.phase !== 'PLAYER_ACTION') return;
+  const actor = state.activeChar;
+  const od = OVERDRIVE_CONFIG[actor.id];
+  const hpPct = actor.hp / actor.maxHp;
+  const overdriveAvailable = od && !actor.overdriveUsed && hpPct <= OVERDRIVE_THRESHOLD;
+
+  if (overdriveAvailable) {
+    actor.overdriveUsed = true;
+    const skill = od.skill;
+
+    if (skill.isBastionGuard) {
+      state.readyQueue.shift();
+      actor.atb = 0;
+      state.phase = 'RESOLVING';
+      state.turn++;
+      updateTurnNum();
+      closeActionPanel();
+      state.party.filter(p => !p.dead).forEach(p => {
+        applyBuff(p, 'def_up', 0.60, Infinity);
+      });
+      addLog(`${actor.name} — OVERDRIVE — BASTION GUARD`, 'overdrive');
+      addLog(`The field locks. All incoming damage reduced permanently.`, 'buff');
+      state.party.filter(p => !p.dead).forEach(p => showFloat(p, 'BASTION', 'buff'));
+      AUDIO.sfxBuff();
+      VFX.screenFlash('rgba(255,140,0,0.08)', 400);
+      render();
+      state.animating = false;
+      state.phase = 'IDLE';
+      scheduleLoop();
+      return;
+    }
+
+    addLog(`${actor.name} — OVERDRIVE — ${od.name}`, 'overdrive');
+    state.selectedAction = { skill };
+    if (skill.target === 'all') {
+      commitPlayerAction(state.enemies.filter(e => !e.dead));
+    } else {
+      enterTargetMode();
+    }
+    return;
+  }
+
+  state.selectedAction = { skill: { name: 'Attack', type: 'physical', power: 1.0, target: 'single', cost: 0 } };
+  enterTargetMode();
+}
+
+function onSkills() {
+  if (state.phase !== 'PLAYER_ACTION') return;
+  const li = el('skill-list');
+  if (!li.classList.contains('hidden')) { li.classList.add('hidden'); return; }
+  li.innerHTML = '';
+  state.activeChar.skills.forEach((sk, i) => {
+    const canAfford = (state.activeChar.mp || 0) >= (sk.cost || 0);
+    const btn = document.createElement('button');
+    btn.className = 'skill-btn' + (canAfford ? '' : ' cant-afford');
+    btn.disabled = !canAfford;
+    btn.innerHTML = `<span class="skill-name">${sk.name}</span><span class="skill-mp">${sk.cost}MP</span><span class="skill-desc">${sk.desc}</span>`;
+    btn.onclick = () => onSkillSelect(i);
+    li.appendChild(btn);
+  });
+  const back = document.createElement('button');
+  back.className = 'back-btn';
+  back.textContent = '← Back';
+  back.onclick = () => li.classList.add('hidden');
+  li.appendChild(back);
+  li.classList.remove('hidden');
+}
+
+function onSkillSelect(idx) {
+  const skill = state.activeChar.skills[idx];
+  if ((state.activeChar.mp || 0) < (skill.cost || 0)) return;
+  state.selectedAction = { skill };
+  el('skill-list').classList.add('hidden');
+  if (skill.type === 'buff' || skill.type === 'heal' || skill.target === 'all_party') {
+    commitPlayerAction(state.party.filter(p => !p.dead));
+  } else if (skill.target === 'self') {
+    commitPlayerAction([state.activeChar]);
+  } else if (skill.target === 'all') {
+    commitPlayerAction(state.enemies.filter(e => !e.dead));
+  } else {
+    enterTargetMode();
+  }
+}
+
+function onDodge() {
+  if (state.phase !== 'PLAYER_ACTION') return;
+  const actor = state.activeChar;
+  state.readyQueue.shift();
+  actor.atb = 0;
+  state.phase = 'RESOLVING';
+  state.turn++;
+  updateTurnNum();
+  closeActionPanel();
+  resolvePlayerDodge(actor);
+}
+
+function onItems() {
+  if (state.phase !== 'PLAYER_ACTION') return;
+  const li = el('item-list');
+  const skillLi = el('skill-list');
+  skillLi.classList.add('hidden');
+  if (!li.classList.contains('hidden')) { li.classList.add('hidden'); return; }
+  li.innerHTML = '';
+  const actor = state.activeChar;
+  actor.items.forEach((item, i) => {
+    const depleted = item.count <= 0;
+    const btn = document.createElement('button');
+    btn.className = 'item-btn' + (depleted ? ' depleted' : '');
+    btn.disabled = depleted;
+    btn.innerHTML = `<span class="item-name">${item.icon} ${item.name}</span><span class="item-count">×${item.count}</span><span class="item-desc">${item.desc}</span>`;
+    btn.onclick = () => onItemSelect(i);
+    li.appendChild(btn);
+  });
+  const back = document.createElement('button');
+  back.className = 'back-btn';
+  back.textContent = '← Back';
+  back.onclick = () => li.classList.add('hidden');
+  li.appendChild(back);
+  li.classList.remove('hidden');
+}
+
+function onItemSelect(idx) {
+  if (state.phase !== 'PLAYER_ACTION') return;
+  const item = state.activeChar.items[idx];
+  if (!item || item.count <= 0) return;
+  state.selectedAction = { item, itemIdx: idx };
+  el('item-list').classList.add('hidden');
+  enterItemTargetMode();
+}
+
+function enterItemTargetMode() {
+  state.phase = 'PLAYER_ITEM_TARGET';
+  el('main-actions').classList.add('hidden');
+  el('skill-list').classList.add('hidden');
+  el('item-list').classList.add('hidden');
+  const prompt = el('target-prompt');
+  prompt.classList.remove('hidden');
+  const item = state.selectedAction.item;
+
+  // all_enemies: no targeting needed, fire immediately
+  if (item.target === 'all_enemies') {
+    prompt.classList.add('hidden');
+    el('main-actions').classList.remove('hidden');
+    state.phase = 'PLAYER_ACTION';
+    const actor = state.activeChar;
+    item.count--;
+    const allEnemies = state.enemies.filter(e => !e.dead);
+    allEnemies.forEach(e => {
+      applyBuff(e, 'atb_slow', item.amount_atb, item.duration);
+      applyBuff(e, 'atk_slow', item.amount_atk, item.duration);
+      showFloat(e, 'SUPPRESSED', 'debuff');
+    });
+    addLog(`${actor.name} uses ${item.name} — all enemies suppressed for ${item.duration} turns`, 'debuff');
+    AUDIO.sfxMagic();
+    render();
+    openActionPanel(actor);
+    return;
+  }
+
+  // single_enemy: highlight enemy cards as targets
+  if (item.target === 'single_enemy') {
+    prompt.innerHTML = `Use on which enemy?<br><button class="back-btn" id="btn-cancel-item-target" style="margin-top:6px">← Back</button>`;
+    document.getElementById('btn-cancel-item-target').onclick = cancelItemTargetMode;
+    state.enemies.filter(e => !e.dead).forEach(e => {
+      const card = el(`enemy-card-${e.id}`);
+      if (card) {
+        card.classList.add('targetable');
+        card.onclick = () => playerUseItemOnEnemy(e.id);
+      }
+    });
+    return;
+  }
+
+  // single_ally: default
+  prompt.innerHTML = `Use on which ally?<br><button class="back-btn" id="btn-cancel-item-target" style="margin-top:6px">← Back</button>`;
+  document.getElementById('btn-cancel-item-target').onclick = cancelItemTargetMode;
+  state.party.filter(p => !p.dead).forEach(p => {
+    const panel = el(`panel-${p.id}`);
+    if (panel) {
+      panel.classList.add('item-targetable');
+      panel.onclick = () => playerUseItem(p.id);
+    }
+  });
+}
+
+function playerUseItemOnEnemy(enemyId) {
+  if (state.phase !== 'PLAYER_ITEM_TARGET') return;
+  const target = state.enemies.find(e => e.id === enemyId && !e.dead);
+  if (!target) return;
+  state.enemies.forEach(e => {
+    const card = el(`enemy-card-${e.id}`);
+    if (card) { card.classList.remove('targetable'); card.onclick = null; }
+  });
+  el('target-prompt').classList.add('hidden');
+  el('main-actions').classList.remove('hidden');
+
+  const actor = state.activeChar;
+  const { item } = state.selectedAction;
+  item.count--;
+
+  switch (item.effect) {
+    case 'item_atb_slow':
+      applyBuff(target, 'atb_slow', item.amount, item.duration);
+      addLog(`${actor.name} uses ${item.name} on ${target.name} — AP slowed for ${item.duration} turns`, 'debuff');
+      showFloat(target, 'AP↓', 'debuff');
+      AUDIO.sfxMagic();
+      break;
+    case 'item_atk_slow':
+      applyBuff(target, 'atk_slow', item.amount, item.duration);
+      addLog(`${actor.name} uses ${item.name} on ${target.name} — ATK reduced for ${item.duration} turns`, 'debuff');
+      showFloat(target, 'ATK↓↓', 'debuff');
+      AUDIO.sfxMagic();
+      break;
+  }
+
+  render();
+  state.phase = 'PLAYER_ACTION';
+  openActionPanel(actor);
+}
+
+function cancelItemTargetMode() {
+  clearItemTargetMode();
+  state.phase = 'PLAYER_ACTION';
+  el('main-actions').classList.remove('hidden');
+  el('target-prompt').classList.add('hidden');
+  el('target-prompt').innerHTML = '';
+}
+
+function clearItemTargetMode() {
+  state.party.forEach(p => {
+    const panel = el(`panel-${p.id}`);
+    if (panel) { panel.classList.remove('item-targetable'); panel.onclick = null; }
+  });
+  state.enemies.forEach(e => {
+    const card = el(`enemy-card-${e.id}`);
+    if (card) { card.classList.remove('targetable'); card.onclick = null; }
+  });
+}
+
+async function playerUseItem(memberId) {
+  if (state.phase !== 'PLAYER_ITEM_TARGET') return;
+  const target = state.party.find(p => p.id === memberId && !p.dead);
+  if (!target) return;
+  clearItemTargetMode();
+  el('target-prompt').classList.add('hidden');
+  el('main-actions').classList.remove('hidden');
+
+  const actor = state.activeChar;
+  const { item, itemIdx } = state.selectedAction;
+  item.count--;
+
+  switch (item.effect) {
+    case 'heal_hp':
+      target.hp = Math.min(target.maxHp, target.hp + item.amount);
+      addLog(`${actor.name} uses ${item.name} on ${target.name} — restored ${item.amount} HP`, 'buff');
+      showFloat(target, `+${item.amount} HP`, 'heal');
+      AUDIO.sfxBuff();
+      break;
+    case 'heal_hp_full':
+      target.hp = target.maxHp;
+      addLog(`${actor.name} uses ${item.name} on ${target.name} — HP fully restored`, 'buff');
+      showFloat(target, 'FULL HP', 'heal');
+      AUDIO.sfxBuff();
+      break;
+    case 'heal_mp':
+      target.mp = Math.min(target.maxMp, target.mp + item.amount);
+      addLog(`${actor.name} uses ${item.name} on ${target.name} — restored ${item.amount} MP`, 'buff');
+      showFloat(target, `+${item.amount} MP`, 'buff');
+      AUDIO.sfxBuff();
+      break;
+    case 'heal_dual':
+      target.hp = Math.min(target.maxHp, target.hp + item.amount);
+      target.mp = Math.min(target.maxMp, target.mp + (item.amount_mp || 0));
+      addLog(`${actor.name} uses ${item.name} on ${target.name} — restored ${item.amount} HP and ${item.amount_mp} MP`, 'buff');
+      showFloat(target, `+${item.amount} HP`, 'heal');
+      AUDIO.sfxBuff();
+      break;
+    case 'atb_fill':
+      target.atb = 100;
+      if (!state.readyQueue.find(q => q.id === target.id)) {
+        state.readyQueue.unshift(target);
+      }
+      addLog(`${actor.name} uses ${item.name} on ${target.name} — AP filled, acting next`, 'buff');
+      showFloat(target, 'AP FULL', 'buff');
+      AUDIO.sfxBuff();
+      break;
+    case 'spd_up':
+      if (!target.buffs.find(b => b.effect === 'spd_up')) {
+        applyBuff(target, 'spd_up', item.amount, Infinity);
+        addLog(`${actor.name} uses ${item.name} on ${target.name} — SPD increased`, 'buff');
+        showFloat(target, 'SPD↑', 'buff');
+        AUDIO.sfxBuff();
+      } else {
+        addLog(`${target.name}'s SPD is already boosted`, 'system');
+        item.count++;
+      }
+      break;
+    case 'item_def_up':
+      applyBuff(target, 'def_up', item.amount, item.duration);
+      addLog(`${actor.name} uses ${item.name} on ${target.name} — DEF +${Math.round(item.amount*100)}% for ${item.duration} turns`, 'buff');
+      showFloat(target, 'DEF↑↑', 'buff');
+      AUDIO.sfxBuff();
+      break;
+    case 'item_atk_up':
+      applyBuff(target, 'atk_up', item.amount, item.duration);
+      addLog(`${actor.name} uses ${item.name} on ${target.name} — ATK +${Math.round(item.amount*100)}% for ${item.duration} turns`, 'buff');
+      showFloat(target, 'ATK↑↑', 'buff');
+      AUDIO.sfxBuff();
+      break;
+    case 'item_crit_next':
+      applyBuff(target, 'crit_next', 1, 1);
+      addLog(`${actor.name} uses ${item.name} on ${target.name} — next attack is a guaranteed critical`, 'buff');
+      showFloat(target, 'CRIT↑', 'buff');
+      AUDIO.sfxBuff();
+      break;
+    case 'item_surge':
+      applyBuff(target, 'atk_up', item.amount_atk, item.duration);
+      applyBuff(target, 'spd_up', item.amount_spd, item.duration);
+      addLog(`${actor.name} uses ${item.name} on ${target.name} — ATK +${Math.round(item.amount_atk*100)}% and SPD +${Math.round(item.amount_spd*100)}% for ${item.duration} turns`, 'buff');
+      showFloat(target, 'SURGE!', 'buff');
+      AUDIO.sfxBuff();
+      break;
+  }
+
+  render();
+  state.phase = 'PLAYER_ACTION';
+  openActionPanel(actor);
+}
+
+function cancelItemTargetMode() {
+  clearItemTargetMode();
+  state.phase = 'PLAYER_ACTION';
+  el('main-actions').classList.remove('hidden');
+  el('target-prompt').classList.add('hidden');
+  el('target-prompt').innerHTML = '';
+}
+
+function clearItemTargetMode() {
+  state.party.forEach(p => {
+    const panel = el(`panel-${p.id}`);
+    if (panel) { panel.classList.remove('item-targetable'); panel.onclick = null; }
+  });
+  state.enemies.forEach(e => {
+    const card = el(`enemy-card-${e.id}`);
+    if (card) { card.classList.remove('targetable'); card.onclick = null; }
+  });
+}
+
+function buildPartyPanels() {
+  const cont = el('party-panels');
+  cont.innerHTML = '';
+  state.party.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'party-panel';
+    div.id = `panel-${m.id}`;
+    div.style.setProperty('--member-color', m.color);
+
+    const portraitHTML = m.portrait
+      ? `<img class="portrait-img" src="${m.portrait}" alt="${m.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+      : '';
+    const fallbackStyle = m.portrait ? 'display:none' : '';
+
+    div.innerHTML = `
+      <div class="panel-portrait-row">
+        <div class="portrait-frame">
+          ${portraitHTML}
+          <div class="portrait-fallback-symbol" style="${fallbackStyle}">${m.symbol}</div>
+        </div>
+        <div class="portrait-info">
+          <div class="portrait-name">${m.name}</div>
+          <div class="portrait-sub">${m.subtitle}</div>
+          <div class="status-icons"></div>
+        </div>
+      </div>
+      <div class="panel-stats">
+        <div class="stat-row">
+          <span class="stat-label">HP</span>
+          <div class="stat-bar hp-bar"><div class="hp-fill stat-fill" style="width:100%"></div></div>
+          <span class="stat-value hp-val">${m.hp}/${m.maxHp}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">MP</span>
+          <div class="stat-bar"><div class="mp-fill stat-fill" style="width:100%"></div></div>
+          <span class="stat-value mp-val">${m.mp}/${m.maxMp}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">AP</span>
+          <div class="stat-bar"><div class="atb-fill stat-fill" style="width:0%"></div></div>
+          <span class="stat-value"></span>
+        </div>
+      </div>`;
+    div.style.position = 'relative';
+    // Secret menu: track double-clicks per party member
+    div.addEventListener('click', () => DEV.onPartyClick(m.id));
+    cont.appendChild(div);
+  });
+}
+
+function buildAllyField() {
+  const cont = el('ally-field');
+  if (!cont) return;
+  cont.innerHTML = '';
+  state.party.forEach(m => {
+    if (!m.battler) return; // only members with a battler sprite set get a field sprite
+    const wrap = document.createElement('div');
+    wrap.className = 'ally-battler sprite-stage';
+    wrap.id = `ally-battler-${m.id}`;
+    wrap.innerHTML = `
+      <div class="stage-platform"></div>
+      <div class="ally-sprite-inner">
+        <img src="${m.battler.standby}" alt="${m.name}" onerror="this.parentElement.parentElement.style.display='none'">
+      </div>`;
+    cont.appendChild(wrap);
+    // Preload the other poses so swapping frames mid-animation is instant
+    [m.battler.attack, m.battler.damaged].forEach(src => { if (src) (new Image()).src = src; });
+  });
+}
+
+function buildEnemyCards() {
+  const cont = el('enemy-container');
+  cont.innerHTML = '';
+  state.enemies.forEach((e, i) => {
+    const card = document.createElement('div');
+    card.id = `enemy-card-${e.id}`;
+    card.style.setProperty('--enemy-color', e.color);
+    card.style.animationDelay = `${i * 0.12}s`;
+    card.style.position = 'relative';
+
+    if (e.sprite) {
+      // ── SPRITE CARD layout ──────────────────────────────
+      card.className = `enemy-card${e.isBoss ? ' boss' : ''} sprite-card`;
+      card.innerHTML = `
+        <div class="sprite-stage">
+          <div class="stage-platform"></div>
+          <div class="sprite-img-wrap">
+            <img class="sprite-img" src="${e.sprite}" alt="${e.name}"
+                 onerror="this.style.opacity='0'">
+            <div class="sprite-stats-overlay">
+              <div class="sprite-hp-row">
+                <span class="sprite-stat-label">HP</span>
+                <div class="sprite-hp-bar-track"><div class="sprite-hp-fill" style="width:100%"></div></div>
+                <span class="sprite-hp-text">${e.hp} / ${e.maxHp}</span>
+              </div>
+              <div class="sprite-hp-row">
+                <span class="sprite-stat-label">AP</span>
+                <div class="sprite-atb-bar-track"><div class="sprite-atb-fill" style="width:0%"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="sprite-name-row">${e.name}</div>
+        <div class="sprite-subtitle-row">${e.subtitle || ''}</div>
+        <div class="sprite-intent-row enemy-intent"></div>`;
+    } else {
+      // ── ORIGINAL card layout ────────────────────────────
+      card.className = `enemy-card${e.isBoss ? ' boss' : ''}`;
+      card.innerHTML = `
+        <div class="enemy-symbol-wrap"><div class="enemy-symbol">${e.symbol}</div></div>
+        <div class="enemy-name">${e.name}</div>
+        <div class="enemy-subtitle">${e.subtitle}</div>
+        <div class="enemy-hp-bar"><div class="enemy-hp-fill" style="width:100%"></div></div>
+        <div class="enemy-hp-text">${e.hp} / ${e.maxHp}</div>
+        <div class="enemy-atb-bar"><div class="enemy-atb-fill" style="width:0%"></div></div>
+        <div class="enemy-intent"></div>`;
+    }
+
+    // Secret menu: track clicks on enemy card
+    card.addEventListener('click', () => DEV.onEnemyClick(e.id));
+    cont.appendChild(card);
+  });
+}
+
+function render() {
+  state.party.forEach(m => {
+    const p = el(`panel-${m.id}`);
+    if (!p) return;
+    const hpPct = Math.max(0, m.hp / m.maxHp * 100);
+    const mpPct = Math.max(0, m.mp / m.maxMp * 100);
+    p.querySelector('.hp-val').textContent = `${m.hp}/${m.maxHp}`;
+    p.querySelector('.mp-val').textContent = `${m.mp}/${m.maxMp}`;
+    const hpFill = p.querySelector('.hp-fill');
+    hpFill.style.width = hpPct + '%';
+    let r, g, b;
+    if (hpPct >= 50) {
+      const t = (hpPct - 50) / 50;
+      r = Math.round(58  + (200 - 58)  * (1 - t));
+      g = Math.round(184 + (160 - 184) * (1 - t));
+      b = Math.round(112 + (48  - 112) * (1 - t));
+    } else {
+      const t = hpPct / 50;
+      r = Math.round(200);
+      g = Math.round(160 * t + 48 * (1 - t));
+      b = Math.round(48);
+    }
+    hpFill.style.background = `rgb(${r},${g},${b})`;
+    hpFill.className = 'hp-fill stat-fill' + (hpPct < 25 ? ' critical' : '');
+    p.querySelector('.mp-fill').style.width = mpPct + '%';
+    p.classList.toggle('dead', m.dead);
+    p.classList.toggle('active', m === state.activeChar && !m.dead);
+    const si = p.querySelector('.status-icons');
+    const icons = { def_up:'🛡', atk_up:'⚡', crit_next:'◎', atb_slow:'⏧', spd_up:'💨' };
+    si.innerHTML = m.buffs.map(b => `<span class="status-icon" title="${b.effect}">${icons[b.effect]||'?'}</span>`).join('');
+    if (m.dodging) si.innerHTML += `<span class="status-icon" title="Evading" style="color:var(--dodge-col)">◌</span>`;
+
+    const battlerEl = el(`ally-battler-${m.id}`);
+    if (battlerEl) battlerEl.classList.toggle('dead', m.dead);
+  });
+
+  state.enemies.forEach(e => {
+    const card = el(`enemy-card-${e.id}`);
+    if (!card) return;
+    const pct = Math.max(0, e.hp / e.maxHp * 100);
+    const hpColor = pct < 25 ? 'var(--hp-lo)' : pct < 50 ? 'var(--hp-mid)' : 'var(--hp-hi)';
+
+    if (e.sprite) {
+      // Sprite card HP/AP elements
+      const fill = card.querySelector('.sprite-hp-fill');
+      if (fill) { fill.style.width = pct + '%'; fill.style.background = hpColor; }
+      const hpText = card.querySelector('.sprite-hp-text');
+      if (hpText) hpText.textContent = `${e.hp} / ${e.maxHp}`;
+    } else {
+      // Original card HP/AP elements
+      const fill = card.querySelector('.enemy-hp-fill');
+      if (fill) { fill.style.width = pct + '%'; fill.style.background = hpColor; }
+      const hpText = card.querySelector('.enemy-hp-text');
+      if (hpText) hpText.textContent = `${e.hp} / ${e.maxHp}`;
+    }
+    card.classList.toggle('dead', e.dead);
+  });
+}
+
+function renderATBOnly() {
+  state.party.forEach(m => {
+    const p = el(`panel-${m.id}`);
+    if (!p) return;
+    const fill = p.querySelector('.atb-fill');
+    if (fill) {
+      fill.style.width = Math.min(100, m.atb) + '%';
+      fill.classList.toggle('ready', m.atb >= 100);
+    }
+  });
+  state.enemies.forEach(e => {
+    const card = el(`enemy-card-${e.id}`);
+    if (!card || e.dead) return;
+
+    // ATB fill — works for both sprite (.sprite-atb-fill) and original (.enemy-atb-fill)
+    const fill = card.querySelector('.sprite-atb-fill') || card.querySelector('.enemy-atb-fill');
+    if (fill) {
+      fill.style.width = Math.min(100, e.atb) + '%';
+      fill.classList.toggle('ready', e.atb >= 100);
+      fill.classList.toggle('striking', e.atb >= 80 && e.atb < 100);
+      if (!e.pendingSkill) {
+        e.pendingSkill = null;
+      }
+    }
+    // Update intent label (class is .enemy-intent for both layouts)
+    const intent = card.querySelector('.enemy-intent');
+    if (intent) {
+      if (e.atb <= 0) {
+        intent.textContent = '';
+        intent.className = intent.classList.contains('sprite-intent-row')
+          ? 'sprite-intent-row enemy-intent'
+          : 'enemy-intent';
+      } else if (e.atb >= 100 && e.pendingSkill) {
+        const evaPct = enemyEvaPercent(e);
+        const intentLabel = (e.pendingSkill.type === 'physical' || e.pendingSkill.type === 'magic') ? 'STRIKE' : 'SKILL';
+        intent.innerHTML = `▶ ${intentLabel} <span class="intent-eva intent-eva-red">| EVA%: ${evaPct}</span>`;
+        const base = intent.classList.contains('sprite-intent-row') ? 'sprite-intent-row enemy-intent' : 'enemy-intent';
+        intent.className = base + ' intent-striking';
+      } else if (e.atb > 0) {
+        const evaPct = enemyEvaPercent(e);
+        intent.innerHTML = `ACTIVE <span class="intent-eva">| EVA%: ${evaPct}</span>`;
+        const base = intent.classList.contains('sprite-intent-row') ? 'sprite-intent-row enemy-intent' : 'enemy-intent';
+        intent.className = base + ' intent-active';
+      }
+    }
+  });
+}
+
+function addLog(text, type = 'normal') {
+  const log = el('battle-log');
+  const div = document.createElement('div');
+  div.className = `log-entry log-${type}`;
+  div.textContent = text;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  while (log.children.length > 35) log.removeChild(log.firstChild);
+}
+
+// ── Battle background parallax ────────────────────────────
+// ── Battle background parallax ────────────────────────────
+const BATTLE_BG = {
+  init() {
+    const bgDiv = el('battle-bg');
+    if (!bgDiv) return;
+    bgDiv.style.backgroundImage = BATTLE.bg ? `url('${BATTLE.bg}')` : '';
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+//  VFX SYSTEM
+// ═══════════════════════════════════════════════════════════
+const VFX = {
+  _canvas: null,
+  _ctx: null,
+  _particles: [],
+  _draws: [],
+  _raf: null,
+  _shakeX: 0, _shakeY: 0, _shakeDecay: 0,
+  _battleEl: null,
+
+  init() {
+    this._canvas  = el('vfx-canvas');
+    this._battleEl = el('battle-screen');
+    if (!this._canvas) return;
+    this._ctx = this._canvas.getContext('2d');
+    this._resize();
+    window.addEventListener('resize', () => this._resize());
+    this._loop();
+  },
+
+  _resize() {
+    if (!this._canvas || !this._battleEl) return;
+    this._canvas.width  = this._battleEl.offsetWidth;
+    this._canvas.height = this._battleEl.offsetHeight;
+  },
+
+  _loop() {
+    this._raf = requestAnimationFrame(() => this._loop());
+    const ctx = this._ctx;
+    if (!ctx) return;
+    ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+
+    if (this._shakeDecay > 0) {
+      this._shakeX = (Math.random() - 0.5) * this._shakeDecay * 12;
+      this._shakeY = (Math.random() - 0.5) * this._shakeDecay * 8;
+      this._shakeDecay = Math.max(0, this._shakeDecay - 0.065);
+      if (this._battleEl) this._battleEl.style.transform = `translate(${this._shakeX}px, ${this._shakeY}px)`;
+    } else if (this._battleEl && this._battleEl.style.transform) {
+      this._battleEl.style.transform = '';
+    }
+
+    this._draws = this._draws.filter(d => d.life > 0);
+    for (const d of this._draws) {
+      d.life -= d.decay;
+      const t = Math.max(0, d.life);
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, t / d.fadeStart);
+      d.draw(ctx, t);
+      ctx.restore();
+    }
+
+    this._particles = this._particles.filter(p => p.life > 0);
+    for (const p of this._particles) {
+      p.x  += p.vx;
+      p.y  += p.vy;
+      p.vy += p.gravity;
+      p.vx *= p.drag;
+      p.vy *= p.drag;
+      p.life -= p.decay;
+      const a = Math.min(1, p.life / p.fadeStart);
+      ctx.save();
+      ctx.globalAlpha = a * p.alpha;
+
+      if (p.shape === 'slash') {
+        const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+        const angle = Math.atan2(p.vy, p.vx);
+        const len = p.size * (4 + spd * 1.4);
+        ctx.translate(p.x, p.y);
+        ctx.rotate(angle);
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = p.size * 0.55;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur  = p.size * 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-len * 0.65, 0);
+        ctx.lineTo(len * 0.35, 0);
+        ctx.stroke();
+      } else if (p.shape === 'wisp') {
+        const angle = Math.atan2(p.vy, p.vx);
+        const len = p.size * 5;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(angle);
+        const grad = ctx.createLinearGradient(-len * 0.5, 0, len * 0.5, 0);
+        grad.addColorStop(0, 'transparent');
+        grad.addColorStop(0.4, p.color);
+        grad.addColorStop(1, 'transparent');
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = p.size * 0.4;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur  = p.size * 1.2;
+        ctx.beginPath();
+        ctx.moveTo(-len * 0.5, 0);
+        ctx.lineTo(len * 0.5, 0);
+        ctx.stroke();
+      } else if (p.shape === 'ring') {
+        ctx.translate(p.x, p.y);
+        const t = 1 - p.life / p.fadeStart;
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth   = p.size * 0.15;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur  = p.size * 1.5;
+        ctx.globalAlpha *= Math.max(0, 1 - t);
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size * (0.1 + t) * 22, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        ctx.translate(p.x, p.y);
+        ctx.fillStyle   = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur  = p.size * 1.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  },
+
+  _emit(x, y, count, cfg) {
+    for (let i = 0; i < count; i++) {
+      const angle = cfg.angleMin + Math.random() * (cfg.angleMax - cfg.angleMin);
+      const speed = cfg.speedMin + Math.random() * (cfg.speedMax - cfg.speedMin);
+      this._particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        gravity:  cfg.gravity  ?? 0.12,
+        drag:     cfg.drag     ?? 0.93,
+        size:     (cfg.sizeMin ?? 2) + Math.random() * ((cfg.sizeMax ?? 4) - (cfg.sizeMin ?? 2)),
+        color:    Array.isArray(cfg.colors) ? cfg.colors[Math.floor(Math.random() * cfg.colors.length)] : cfg.color,
+        life:     1,
+        decay:    cfg.decay ?? (0.018 + Math.random() * 0.014),
+        fadeStart: cfg.fadeStart ?? 0.55,
+        alpha:    cfg.alpha ?? 1,
+        shape:    cfg.shape ?? 'dot'
+      });
+    }
+  },
+
+  _addDraw(drawFn, duration, fadeStart) {
+    this._draws.push({ life: 1, decay: 1 / (duration / 16.67), fadeStart: fadeStart ?? 0.55, draw: drawFn });
+  },
+
+  _getCardCenter(target) {
+    const cardEl = target.isParty
+      ? el(`panel-${target.id}`)
+      : el(`enemy-card-${target.id}`);
+    const battleEl = this._battleEl;
+    if (!cardEl || !battleEl) return { x: this._canvas.width / 2, y: this._canvas.height / 2 };
+    const cr = cardEl.getBoundingClientRect();
+    const br = battleEl.getBoundingClientRect();
+    return { x: cr.left - br.left + cr.width / 2, y: cr.top - br.top + cr.height / 2 };
+  },
+
+  shake(intensity = 1) {
+    this._shakeDecay = Math.max(this._shakeDecay, intensity);
+  },
+
+  screenFlash(color, duration = 180) {
+    const f = el('screen-flash');
+    if (!f) return;
+    f.style.background = color;
+    f.style.transition = 'none';
+    f.style.opacity    = '1';
+    requestAnimationFrame(() => {
+      f.style.transition = `opacity ${duration}ms ease-out`;
+      f.style.opacity    = '0';
+    });
+  },
+
+  hitFlash(target, type) {
+    const cardEl = target.isParty
+      ? el(`panel-${target.id}`)
+      : el(`enemy-card-${target.id}`);
+    if (!cardEl) return;
+    const f = document.createElement('div');
+    f.className = `hit-flash hit-flash-${type}`;
+    cardEl.appendChild(f);
+    setTimeout(() => f.remove(), 560);
+  },
+
+  _drawSlash(x, y, isCrit) {
+    const W = isCrit ? 90 : 65;
+    const H = isCrit ? 80 : 58;
+    const color1 = isCrit ? 'rgba(255,255,255,0.92)' : 'rgba(220,215,205,0.82)';
+    const color2 = isCrit ? 'rgba(200,180,160,0.55)' : 'rgba(160,150,135,0.40)';
+    this._addDraw((ctx, t) => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.strokeStyle = color1;
+      ctx.lineWidth = isCrit ? 2.2 : 1.5;
+      ctx.shadowColor = isCrit ? 'rgba(255,240,220,0.8)' : 'rgba(200,190,175,0.5)';
+      ctx.shadowBlur = isCrit ? 12 : 6;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-W * 0.55, -H * 0.45);
+      ctx.quadraticCurveTo(W * 0.05, -H * 0.10, W * 0.55, H * 0.50);
+      ctx.stroke();
+      if (isCrit) {
+        ctx.strokeStyle = color2;
+        ctx.lineWidth = 1.2;
+        ctx.shadowBlur = 5;
+        ctx.beginPath();
+        ctx.moveTo(W * 0.40, -H * 0.50);
+        ctx.quadraticCurveTo(-W * 0.05, -H * 0.05, -W * 0.40, H * 0.45);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }, isCrit ? 280 : 220, 0.45);
+    const slashAngle = Math.PI * 0.30;
+    this._emit(x - W * 0.3, y - H * 0.2, isCrit ? 4 : 2, {
+      angleMin: slashAngle - 0.18, angleMax: slashAngle + 0.18,
+      speedMin: 3.5, speedMax: 6.5,
+      colors: isCrit ? ['#ffffff', '#e0d8d0', '#b0a898'] : ['#d0c8bc', '#a89888'],
+      sizeMin: 0.8, sizeMax: 1.4,
+      gravity: 0.14, drag: 0.88,
+      decay: 0.038, fadeStart: 0.45, shape: 'slash'
+    });
+  },
+
+  _drawFlame(x, y, isCrit) {
+    const tongues = isCrit ? 5 : 3;
+    const spread  = isCrit ? 0.52 : 0.35;
+    for (let i = 0; i < tongues; i++) {
+      const ox = (Math.random() - 0.5) * (isCrit ? 28 : 18);
+      this._emit(x + ox, y + 10, 1, {
+        angleMin: -Math.PI * (0.5 + spread * 0.5) + i * (Math.PI * spread / (tongues - 1 || 1)),
+        angleMax: -Math.PI * (0.5 + spread * 0.5) + i * (Math.PI * spread / (tongues - 1 || 1)) + 0.15,
+        speedMin: isCrit ? 2.0 : 1.2,
+        speedMax: isCrit ? 4.5 : 3.0,
+        colors: isCrit ? ['#ff8830', '#ff6010', '#ffaa40', '#cc3010'] : ['#d06020', '#b04010', '#e08030'],
+        sizeMin: isCrit ? 2.5 : 1.8,
+        sizeMax: isCrit ? 5.0 : 3.5,
+        gravity: -0.18, drag: 0.93,
+        decay: 0.016, fadeStart: 0.55, shape: 'dot'
+      });
+    }
+    this._emit(x, y, isCrit ? 10 : 6, {
+      angleMin: -Math.PI * 0.85, angleMax: -Math.PI * 0.15,
+      speedMin: 0.8, speedMax: 3.2,
+      colors: isCrit ? ['#ff9940', '#ffcc60', '#ff6620'] : ['#c05820', '#e07830'],
+      sizeMin: 0.8, sizeMax: 1.8,
+      gravity: -0.08, drag: 0.92,
+      decay: 0.024, fadeStart: 0.5, shape: 'slash'
+    });
+    this._addDraw((ctx, t) => {
+      ctx.save();
+      ctx.translate(x, y);
+      const r = isCrit ? 22 : 14;
+      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+      grad.addColorStop(0, isCrit ? 'rgba(255,200,80,0.55)' : 'rgba(220,120,40,0.40)');
+      grad.addColorStop(1, 'rgba(180,60,0,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }, isCrit ? 200 : 150, 0.35);
+  },
+
+  _drawSigil(x, y, isCrit) {
+    const rings  = isCrit ? 3 : 2;
+    const baseR  = isCrit ? 38 : 26;
+    const color  = isCrit ? 'rgba(160,120,220,0.75)' : 'rgba(110,80,170,0.65)';
+    const gColor = isCrit ? 'rgba(200,160,255,0.5)'  : 'rgba(150,110,210,0.38)';
+    for (let i = 0; i < rings; i++) {
+      const delay = i * 55;
+      setTimeout(() => {
+        const r0 = baseR + i * 14;
+        const lifeFrames = isCrit ? 340 : 260;
+        this._addDraw((ctx, t) => {
+          ctx.save();
+          ctx.translate(x, y);
+          const expand = (1 - t) * r0 * 0.35;
+          ctx.strokeStyle = i === 0 ? color : gColor;
+          ctx.lineWidth = i === 0 ? 1.4 : 0.9;
+          ctx.shadowColor = isCrit ? 'rgba(190,130,255,0.6)' : 'rgba(130,90,200,0.45)';
+          ctx.shadowBlur = isCrit ? 10 : 6;
+          ctx.beginPath();
+          ctx.arc(0, 0, r0 + expand, 0, Math.PI * 2);
+          ctx.stroke();
+          if (i === 0) {
+            const ticks = isCrit ? 8 : 6;
+            for (let k = 0; k < ticks; k++) {
+              const a = (k / ticks) * Math.PI * 2;
+              const ir = r0 + expand - 5;
+              const or = r0 + expand + 5;
+              ctx.beginPath();
+              ctx.moveTo(Math.cos(a) * ir, Math.sin(a) * ir);
+              ctx.lineTo(Math.cos(a) * or, Math.sin(a) * or);
+              ctx.stroke();
+            }
+          }
+          ctx.restore();
+        }, lifeFrames, 0.50);
+      }, delay);
+    }
+    this._emit(x, y, isCrit ? 8 : 5, {
+      angleMin: -Math.PI * 0.90, angleMax: -Math.PI * 0.10,
+      speedMin: 0.5, speedMax: 2.0,
+      colors: isCrit ? ['#8060c8', '#a080e0', '#604898', '#c0a0ff'] : ['#6048a0', '#8060b8', '#503880'],
+      sizeMin: 1.0, sizeMax: 2.2,
+      gravity: -0.10, drag: 0.96,
+      decay: 0.011, fadeStart: 0.50, shape: 'wisp'
+    });
+  },
+
+  burstByActor(target, actor, isCrit) {
+    const { x, y } = this._getCardCenter(target);
+    const id = actor ? actor.id : null;
+    if (id === 'kurt') {
+      this.shake(isCrit ? 0.7 : 0.4);
+      this.hitFlash(target, 'magic');
+      this._drawFlame(x, y, isCrit);
+      if (isCrit) this.screenFlash('rgba(180,70,10,0.08)', 220);
+    } else if (id === 'iris') {
+      this.shake(isCrit ? 0.5 : 0.28);
+      this.hitFlash(target, 'magic');
+      this._drawSigil(x, y, isCrit);
+      if (isCrit) this.screenFlash('rgba(80,40,140,0.08)', 240);
+    } else {
+      this.shake(isCrit ? 0.85 : 0.38);
+      this.hitFlash(target, 'dmg');
+      this._drawSlash(x, y, isCrit);
+      if (isCrit) this.screenFlash('rgba(255,255,255,0.06)', 180);
+    }
+  },
+
+  burstMagic(target, actor) { this.burstByActor(target, actor, false); },
+  burstCrit(target, actor)  { this.burstByActor(target, actor, true); },
+
+  burstHit(target) {
+    const { x, y } = this._getCardCenter(target);
+    this.shake(0.32);
+    this.hitFlash(target, 'dmg');
+    this._emit(x, y, 3, {
+      angleMin: -Math.PI * 0.85, angleMax: -Math.PI * 0.15,
+      speedMin: 1.5, speedMax: 4.5,
+      colors: ['#b8b0a8', '#807870', '#d0c8c0'],
+      sizeMin: 0.9, sizeMax: 1.8,
+      gravity: 0.18, drag: 0.90,
+      decay: 0.030, fadeStart: 0.45, shape: 'slash'
+    });
+  },
+
+  burstHeal(target) {
+    const { x, y } = this._getCardCenter(target);
+    this.hitFlash(target, 'heal');
+    this._emit(x, y, 4, {
+      angleMin: -Math.PI * 0.85, angleMax: -Math.PI * 0.15,
+      speedMin: 0.5, speedMax: 1.8,
+      colors: ['#c0b068', '#a89850', '#d8c880'],
+      sizeMin: 1.0, sizeMax: 1.8,
+      gravity: -0.09, drag: 0.96,
+      decay: 0.010, fadeStart: 0.42, shape: 'wisp'
+    });
+  },
+
+  burstDebuff(target) {
+    const { x, y } = this._getCardCenter(target);
+    this.hitFlash(target, 'magic');
+    this._emit(x, y, 3, {
+      angleMin: Math.PI * 0.20, angleMax: Math.PI * 0.80,
+      speedMin: 0.4, speedMax: 1.4,
+      colors: ['#382040', '#281830', '#503058'],
+      sizeMin: 1.0, sizeMax: 2.0,
+      gravity: 0.07, drag: 0.95,
+      decay: 0.012, fadeStart: 0.38, shape: 'wisp'
+    });
+  },
+
+  burstDefeat(target) {
+    const { x, y } = this._getCardCenter(target);
+    this.shake(0.55);
+    this.screenFlash('rgba(100,80,60,0.05)', 400);
+    this._emit(x, y, 5, {
+      angleMin: Math.PI * 0.3, angleMax: Math.PI * 0.7,
+      speedMin: 1.0, speedMax: 3.5,
+      colors: ['#584848', '#403838', '#706060'],
+      sizeMin: 1.2, sizeMax: 2.2,
+      gravity: 0.22, drag: 0.88,
+      decay: 0.020, fadeStart: 0.42, shape: 'slash'
+    });
+  }
+};
+
+function showFloat(target, value, type, actor) {
+  if (type === 'crit') {
+    VFX.burstCrit(target, actor);
+  } else if (type === 'enemy-dmg') {
+    VFX.burstByActor(target, actor, false);
+  } else if (type === 'player-dmg') {
+    VFX.burstHit(target);
+  } else if (type === 'heal') {
+    VFX.burstHeal(target);
+  } else if (type === 'debuff') {
+    VFX.burstDebuff(target);
+  }
+
+  const container = target.isParty
+    ? el(`panel-${target.id}`)
+    : el(`enemy-card-${target.id}`);
+  if (!container) return;
+  const f = document.createElement('div');
+  f.className = `floater floater-${type}`;
+  f.textContent = value;
+  container.appendChild(f);
+  setTimeout(() => f.remove(), 1250);
+}
+
+function spawnResultParticles() {
+  const container = el('result-particles');
+  if (!container) return;
+  container.innerHTML = '';
+  const count = 38;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'result-particle';
+    const x = Math.random() * 100;
+    const delay = Math.random() * 4;
+    const dur   = 5 + Math.random() * 8;
+    const size  = 1 + Math.random() * 2.5;
+    p.style.cssText = `
+      left: ${x}%;
+      bottom: -10px;
+      width: ${size}px;
+      height: ${size}px;
+      animation-duration: ${dur}s;
+      animation-delay: ${delay}s;
+      box-shadow: 0 0 ${size * 3}px rgba(208,144,48,0.8);
+    `;
+    container.appendChild(p);
+  }
+}
+
+function endBattle(won, fled = false) {
+  if (state.loopHandle) cancelAnimationFrame(state.loopHandle);
+  state.phase = won ? 'WIN' : 'LOSE';
+  AUDIO.stopBGM();
+  if (won) {
+    AUDIO.sfxVictory();
+    // Play Respite.mp3 after brief delay
+    setTimeout(() => {
+      const respite = new Audio('FC-OST/Respite.mp3');
+      respite.volume = 0.6;
+      respite.play().catch(() => {});
+    }, 900);
+  }
+
+  setTimeout(() => {
+    el('battle-screen').classList.add('hidden');
+    el('result-screen').classList.remove('hidden');
+
+    if (won) {
+      // Show win layout, hide lose layout
+      el('result-win-layout').classList.remove('hidden');
+      el('result-lose-layout').classList.add('hidden');
+      el('result-corner-r').classList.remove('hidden');
+      el('result-corner-l').classList.remove('hidden');
+
+      spawnResultParticles();
+
+      const titleEl = el('result-title');
+      const body    = el('result-body');
+      const btn     = el('result-btn');
+
+      titleEl.textContent = 'Encounter Finished';
+
+      const remnantEther = state.enemies.reduce((s, e) => s + (e.xp || 0), 0);
+      const bossDrops = state.enemies.filter(e => e.drops && e.drops.length);
+      let rewardsHTML = '';
+      if (bossDrops.length) {
+        rewardsHTML = `<div class="result-rewards">
+          <div class="result-reward-label">REWARDS OBTAINED</div>
+          ${bossDrops.flatMap(e => e.drops).map(d =>
+            `<div class="result-xp">＋ ${d.amount} ${d.name}</div>`
+          ).join('')}
+        </div>`;
+      } else {
+        rewardsHTML = `<div class="result-rewards">
+          <div class="result-reward-label">REWARDS OBTAINED</div>
+          <div class="result-xp">＋ ${remnantEther} Remnant Ether</div>
+        </div>`;
+      }
+
+      const partyRows = state.party.map(p => {
+        const hpClass = p.dead ? 'result-member-hp down' : 'result-member-hp';
+        const hpText  = p.dead ? '— down —' : `${p.hp} / ${p.maxHp} HP`;
+        return `<div class="result-member" style="color:${p.color}">
+          <span>${p.name}</span>
+          <span class="${hpClass}">${hpText}</span>
+        </div>`;
+      }).join('');
+
+      body.innerHTML = `
+        <p class="result-sub">The Gate Warden has fallen. Proceed forward.</p>
+        ${rewardsHTML}
+        <div class="result-party-status">
+          <div class="result-party-header">PARTY STATUS</div>
+          ${partyRows}
+        </div>`;
+
+      btn.textContent = '→ Keep Moving';
+      btn.onclick = () => { exitTo('PROCEEDING', () => { window.location.href = 'C2S2.html'; }); };
+
+    } else {
+      // Show lose layout, hide win layout
+      el('result-win-layout').classList.add('hidden');
+      el('result-lose-layout').classList.remove('hidden');
+      el('result-corner-r').classList.add('hidden');
+      el('result-corner-l').classList.add('hidden');
+
+      const titleEl = el('result-title-lose');
+      const body    = el('result-body-lose');
+      const btn     = el('result-btn-lose');
+
+      titleEl.textContent = fled ? 'WITHDRAWAL' : 'DISARMED';
+      body.innerHTML = `<p class="result-sub" style="margin-bottom:0">The crew falls. It is in your hands for them to stand back up.</p>`;
+      btn.textContent = '↩ Try Again';
+      btn.onclick = () => { exitTo('REENGAGING', () => { startBattle(); el('exit-transition').classList.remove('active'); }); };
+    }
+  }, 700);
+}
+
+function exitTo(label, action, delay = 650) {
+  const overlay = el('exit-transition');
+  const labelEl = el('exit-transition-label');
+  labelEl.textContent = label;
+  overlay.classList.add('active');
+  setTimeout(action, delay);
+}
+
+async function startBattle() {
+  if (state.loopHandle) cancelAnimationFrame(state.loopHandle);
+
+  state = {
+    phase: 'IDLE',
+    party: initParty(),
+    enemies: initEnemies(),
+    activeChar: null, selectedAction: null,
+    readyQueue: [], turn: 0, animating: false,
+    loopHandle: null
+  };
+
+  el('result-screen').classList.add('hidden');
+  el('battle-screen').classList.remove('hidden');
+  // Fade out exit transition overlay if it was showing
+  const exitOverlay = el('exit-transition');
+  if (exitOverlay) { exitOverlay.classList.remove('active'); }
+  el('action-panel').classList.add('hidden');
+  el('battle-log').innerHTML = '';
+  DEV.reset();
+
+  updateTurnNum();
+  buildPartyPanels();
+  buildAllyField();
+  buildEnemyCards();
+  BATTLE_BG.init();
+  VFX._resize();
+  render();
+
+  AUDIO.startBGM();
+  await playBattleTransition(BATTLE.name, BATTLE.subtitle);
+
+  addLog(`${BATTLE.name}`, 'header');
+  addLog(BATTLE.subtitle, 'sub');
+  addLog(`Encountered a SENTINEL.`, 'system');
+
+  scheduleLoop();
+}
+
+const el = id => document.getElementById(id);
+const getCardEl = t => t.isParty ? el(`panel-${t.id}`) : el(`enemy-card-${t.id}`);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+function updateTurnNum() { const e = el('turn-num'); if (e) e.textContent = state.turn; }
+
+// ═══════════════════════════════════════════════════════════
+//  AUDIO SYSTEM
+// ═══════════════════════════════════════════════════════════
+
+const AUDIO = {
+  bgm: null,
+  muted: false,
+  _sfx: {},
+  _stopped: false,
+  
+  init() {
+    this.bgm = new Audio('FC-OST/Rebalanced.mp3');
+    this.bgm.loop   = true;
+    this.bgm.volume = 0.5;
+
+    const sfxFiles = {
+      hit:     'FC-MEDIA/hit.wav',
+      crit:    'FC-MEDIA/crit.wav',
+      magic:   'FC-MEDIA/magic.wav',
+      buff:    'FC-MEDIA/buff.wav',
+      defeat:  'FC-MEDIA/defeat.wav',
+      victory: 'FC-MEDIA/win.wav',
+      encount: 'FC-MEDIA/encount_start.wav'
+    };
+    for (const [key, path] of Object.entries(sfxFiles)) {
+      const a = new Audio(path);
+      a.preload = 'auto';
+      this._sfx[key] = a;
+    }
+  },
+
+  _playSfx(key) {
+    if (this.muted) return;
+    const src = this._sfx[key];
+    if (!src) return;
+    const clone = src.cloneNode();
+    clone.volume = 0.8;
+    clone.play().catch(() => {});
+  },
+
+  startBGM() {
+    this._stopped = false;
+    if (!this.bgm || this.muted) return;
+    this.bgm.loop = true;
+    if (this.bgm.paused) {
+      this.bgm.play().catch(() => {});
+    }
+  },
+
+  stopBGM() {
+    this._stopped = true;
+    if (!this.bgm) return;
+    this.bgm.loop = false;
+    this.bgm.pause();
+    this.bgm.currentTime = 0;
+  },
+
+  toggleMute() {
+    this.muted = !this.muted;
+    if (this.bgm) this.bgm.muted = this.muted;
+    const btn = el('btn-mute');
+    if (btn) btn.textContent = this.muted ? '🔇' : '🔊';
+  },
+
+  sfxHit()     { this._playSfx('hit'); },
+  sfxCrit()    { this._playSfx('crit'); },
+  sfxMagic()   { this._playSfx('magic'); },
+  sfxBuff()    { this._playSfx('buff'); },
+  sfxDefeat()  { this._playSfx('defeat'); },
+  sfxVictory() { this._playSfx('victory'); },
+  sfxEncount() { this._playSfx('encount'); }
+};
+
+function playBattleTransition(battleName, subtitle) {
+  return new Promise(resolve => {
+    const overlay   = el('battle-transition');
+    const titleEl   = el('trans-title');
+
+    // ── Set background image if provided ──
+    const bgEl = el('trans-bg');
+    if (bgEl) {
+      if (BATTLE.bg) {
+        bgEl.style.backgroundImage = `url('${BATTLE.bg}')`;
+        bgEl.style.display = '';
+      } else {
+        bgEl.style.backgroundImage = '';
+        bgEl.style.display = 'none';
+      }
+    }
+
+    // ── Poem / epigraph ──
+    const obsEl = el('trans-observation');
+    if (obsEl) {
+      obsEl.innerHTML =
+        'There is no war without a wound that started it,<br>' +
+        'No wound without a name,<br>' +
+        'And no name without something worth losing.';
+    }
+
+    // ── ENGAGE title + hint ──
+    titleEl.innerHTML = '';
+    titleEl.removeAttribute('data-text');
+    titleEl.appendChild(document.createTextNode('ENGAGE'));
+    const hint = document.createElement('span');
+    hint.textContent = 'With the right sequence of actions, encounters can be fast and tactical. Remember to move accordingly and without hesitation.';
+    titleEl.appendChild(hint);
+
+    overlay.classList.remove('hidden');
+    AUDIO.sfxEncount();
+
+    // Begin fade-out before the hard hide
+    setTimeout(() => {
+      overlay.classList.add('fading-out');
+    }, 2200);
+
+    // Hard-hide after CSS transition completes
+    setTimeout(() => {
+      overlay.classList.add('hidden');
+      overlay.classList.remove('fading-out');
+      resolve();
+    }, 2900);
+  });
+}
+
+
+// ═══════════════════════════════════════════════════════════
+//  SECRET DEV MENU — click C1+C2+C3 x2 each, then E1 x5, then type TWDEVMENU
+// ═══════════════════════════════════════════════════════════
+const DEV = {
+  // click counts per target id
+  clicks: {},
+  // sequence state
+  stage: 0,       // 0=chars, 1=enemy, 2=typing
+  charsDone: false,
+  typedSoFar: '',
+  CODE: 'TWDEVMENU',
+
+  // call after every relevant click
+  onPartyClick(memberId) {
+    if (this.stage !== 0) return;
+    this.clicks[memberId] = (this.clicks[memberId] || 0) + 1;
+    // check if all 3 party members have been clicked exactly 2 times
+    const ids = state.party.map(p => p.id);
+    const allTwo = ids.every(id => (this.clicks[id] || 0) >= 2);
+    if (allTwo && !this.charsDone) {
+      this.charsDone = true;
+      this.stage = 1;
+      addLog('...', 'system');
+    }
+  },
+
+  onEnemyClick(enemyId) {
+    if (this.stage !== 1) return;
+    this.clicks[enemyId] = (this.clicks[enemyId] || 0) + 1;
+    if (this.clicks[enemyId] >= 5) {
+      this.stage = 2;
+      this.typedSoFar = '';
+      addLog('......', 'system');
+    }
+  },
+
+  onKey(e) {
+    if (this.stage !== 2) return;
+    const ch = e.key.toUpperCase();
+    if (ch.length === 1 && /[A-Z]/.test(ch)) {
+      this.typedSoFar += ch;
+      if (this.CODE.startsWith(this.typedSoFar)) {
+        if (this.typedSoFar === this.CODE) {
+          this.open();
+        }
+      } else {
+        // reset typing if wrong key
+        this.typedSoFar = ch;
+        if (!this.CODE.startsWith(this.typedSoFar)) this.typedSoFar = '';
+      }
+    }
+  },
+
+  reset() {
+    this.clicks = {};
+    this.stage = 0;
+    this.charsDone = false;
+    this.typedSoFar = '';
+  },
+
+  open() {
+    const menu = el('dev-menu');
+    menu.style.display = 'flex';
+    this.reset();
+  },
+
+  close() {
+    el('dev-menu').style.display = 'none';
+  }
+};
+
+// ── Boot ──────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  AUDIO.init();
+  VFX.init();
+
+  // Dev menu key listener
+  document.addEventListener('keydown', e => DEV.onKey(e));
+
+  // Dev menu buttons
+  el('dev-btn-win').addEventListener('click', () => {
+    DEV.close();
+    state.enemies.forEach(e => { e.hp = 0; e.dead = true; e.atb = 0; });
+    state.readyQueue = state.readyQueue.filter(c => c.isParty);
+    if (state.loopHandle) cancelAnimationFrame(state.loopHandle);
+    render();
+    endBattle(true);
+  });
+  el('dev-btn-lose').addEventListener('click', () => {
+    DEV.close();
+    endBattle(false, true);
+  });
+  el('dev-btn-close').addEventListener('click', () => DEV.close());
+  el('dev-btn-overdrive').addEventListener('click', () => {
+    DEV.close();
+    state.party.filter(p => !p.dead).forEach(p => {
+      const targetHp = Math.floor(p.maxHp * OVERDRIVE_THRESHOLD) - 1;
+      p.hp = Math.max(1, targetHp);
+    });
+    addLog('⚠ DEV — All members at critical HP. Overdrives available.', 'overdrive');
+    render();
+    if (state.activeChar && state.phase === 'PLAYER_ACTION') {
+      openActionPanel(state.activeChar);
+    }
+  });
+
+  el('btn-attack').addEventListener('click', onAttack);
+  el('btn-skills').addEventListener('click', onSkills);
+  el('btn-dodge' ).addEventListener('click', onDodge);
+  el('btn-items' ).addEventListener('click', onItems);
+
+  const startAudio = () => {
+    if (AUDIO.bgm && AUDIO.bgm.paused && !AUDIO.muted && !AUDIO._stopped) {
+      AUDIO.bgm.play().catch(() => {});
+    }
+  };
+  document.addEventListener('click', startAudio, { once: true });
+  document.addEventListener('keydown', startAudio, { once: true });
+
+  startBattle();
+});
+</script>
+</body>
+</html>
